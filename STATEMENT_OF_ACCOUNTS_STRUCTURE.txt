@@ -1,0 +1,71 @@
+STATEMENT OF ACCOUNTS PANEL STRUCTURE
+=====================================
+
+StatementOfAccountsPanel (BorderLayout)
+├── mainContentPanel (BorderLayout)
+    ├── leftPanel (70% width) - Statement Details
+    │   ├── Header Panel
+    │   │   └── 📊 Statement of Accounts (FIRST SEMESTER, 2025-2026)
+    │   ├── Student Info Panel
+    │   │   ├── 👤 Student Icon
+    │   │   └── Student ID | Program + Student Name
+    │   ├── Amount Due Panel
+    │   │   ├── "Your amount due for PRELIM is:"
+    │   │   └── P [amount] (50px red font)
+    │   ├── Balance Panel
+    │   │   ├── "Your remaining balance as of [date]:"
+    │   │   └── P [amount] (50px red font)
+    │   ├── Status Panel
+    │   │   └── PRELIM STATUS: PAID/NOT PAID (Green/Red)
+    │   └── Fee Breakdown Table
+    │       ├── 📋 Header: "Breakdown of fees as of [date]"
+    │       ├── Table Columns: Date | Description | Amount
+    │       ├── Payment History (in parentheses)
+    │       └── Fee Items (tuition, lab fees, etc.)
+    │
+    └── rightPanel (30% width) - Payment Channels
+        ├── Header Panel
+        │   └── 🛒 Online Payment Channels
+        ├── Instruction Text
+        │   └── "Tuition fees can be paid via available online payment channels"
+        └── Payment Channel Buttons (6 buttons)
+            ├── UB UnionBank UPay Online (Orange)
+            ├── @dragonpay Payment Gateway (Red)
+            ├── BPI BPI Online (Dark Red)
+            ├── BDO BDO Online (Blue)
+            ├── BDO Bills Payment (Blue)
+            └── Bukas Tuition Installment Plans (Light Blue)
+            │
+            └── Payment Modal Dialog (when clicked)
+                ├── Amount Input Field (pre-filled with prelim due)
+                ├── Payment Method Dropdown
+                ├── Service Charge Information
+                ├── Total Amount Calculation
+                └── Proceed/Cancel Buttons
+                    │
+                    └── AccountStatementManager Integration
+                        ├── Process Payment
+                        ├── Update Database
+                        └── Refresh Panel Display
+
+COLOR SCHEME
+============
+- Header Blue: #0e284f (14, 40, 79)
+- Dark Blue: #000066 (0, 51, 102)  
+- Light Gray: #F8F8F8 (248, 248, 248)
+- Red Amount: #901818 (144, 24, 24)
+- Green Status: #008000 (0, 128, 0)
+- Red Status: #DC143C (220, 20, 60)
+
+KEY FEATURES
+============
+1. Student Information Display with Icon
+2. Dynamic Amount Due for Exam Periods
+3. Large Typography Balance Display
+4. Color-coded Status Messages
+5. Detailed Fee Breakdown Table
+6. Interactive Payment Channel Buttons
+7. Modal Payment Dialogs
+8. Real-time Database Integration
+9. Service Charge Calculations
+10. Payment Processing Integration
