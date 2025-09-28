@@ -5,3 +5,6 @@ Description: Records all payment transactions made by students for tuition and f
 09/23/2025 03:43 PM,UnionBank UPay Online,FIRST SEMESTER 2025-2026 Enrollme.,P 2,237.08,2258479
 09/24/2025 02:17 PM,UnionBank UPay Online,FIRST SEMESTER 2025-2026 Enrollme.,P 4,045.52,2251834
 09/24/2025 02:20 PM,UnionBank UPay Online,FIRST SEMESTER 2025-2026 Enrollme.,P 5,590.81,2251834
+09/28/2025 03:00 PM,DragonPay (GCash),FIRST SEMESTER 2025-2026 Enrollme.,P 6,500.00,2255146
+09/28/2025 03:02 PM,Payment Received,FIRST SEMESTER 2025-2026 Enrollme.,P 21,500.00,2250605
+09/28/2025 03:02 PM,Payment Received,FIRST SEMESTER 2025-2026 Enrollme.,P 7,500.00,2250605
