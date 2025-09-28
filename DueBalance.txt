@@ -1,0 +1,7 @@
+=== USER BALANCE DATABASE ===
+Format: StudentID,AmountDue,RemainingBalance,PaidAmount
+Description: Records all user balances and amount due for each account
+
+2251834,0,16983,28007.00
+2250493,0,16983,28007.00
+2253631,6830,23813,21177.00

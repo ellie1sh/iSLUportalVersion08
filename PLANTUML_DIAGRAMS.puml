@@ -1,0 +1,901 @@
+@startuml ClassDiagram
+!theme aws-orange
+
+title ISLU Student Portal - Enhanced Class Diagram
+
+package "Core Application" {
+    class ISLUStudentPortal {
+        -mainPanel: JPanel
+        -contentPanel: JPanel
+        -sidebarPanel: JPanel
+        -studentID: String
+        -studentName: String
+        -menu: EnhancedDoublyLinkedList<MenuItem>
+        -amountDue: double
+        -currentBalance: double
+        +ISLUStudentPortal(studentID: String)
+        +initializeComponents(): void
+        +setupLayout(sublist: EnhancedDoublyLinkedList<MenuItem>): void
+        +loadAnnouncements(): void
+        +startDatabaseMonitoring(): void
+        +stopDatabaseMonitoring(): void
+        -generateRandomGrade(): int
+        -generateTranscriptData(): Object[][]
+    }
+
+    class Login {
+        -usernameField: JTextField
+        -passwordField: JPasswordField
+        -loginButton: JButton
+        -registerButton: JButton
+        +Login()
+        +authenticateUser(): boolean
+        +showPortal(studentID: String): void
+        +showRegistration(): void
+    }
+
+    class reqAcc {
+        -registrationForm: JPanel
+        -studentInfoFields: Map<String, JTextField>
+        -profileFields: Map<String, JTextField>
+        +reqAcc()
+        +validateInput(): ValidationResult
+        +createAccount(): boolean
+        +generateStudentID(): String
+        +clearForm(): void
+    }
+}
+
+package "Enhanced Data Structures" {
+    class EnhancedDoublyLinkedList<T> {
+        -head: DoublyLinkedNode<T>
+        -tail: DoublyLinkedNode<T>
+        -size: int
+        -isSorted: boolean
+        -lastUsedComparator: Comparator<T>
+        +add(data: T): void
+        +addFirst(data: T): void
+        +addLast(data: T): void
+        +add(index: int, data: T): void
+        +get(index: int): T
+        +set(index: int, data: T): void
+        +remove(index: int): T
+        +removeFirst(): T
+        +removeLast(): T
+        +indexOf(data: T): int
+        +contains(data: T): boolean
+        +sort(comparator: Comparator<T>): void
+        +binarySearch(key: T, comparator: Comparator<T>): int
+        +reverse(): void
+        +clear(): void
+        +iterator(): Iterator<T>
+        +reverseIterator(): Iterator<T>
+        -getNodeAt(index: int): DoublyLinkedNode<T>
+        -mergeSort(node: DoublyLinkedNode<T>, comparator: Comparator<T>): DoublyLinkedNode<T>
+    }
+
+    class EnhancedSinglyLinkedList<T> {
+        -head: Node<T>
+        -tail: Node<T>
+        -size: int
+        -isSorted: boolean
+        +add(data: T): void
+        +addFirst(data: T): void
+        +addLast(data: T): void
+        +get(index: int): T
+        +remove(index: int): T
+        +removeFirst(): T
+        +removeLast(): T
+        +sort(comparator: Comparator<T>): void
+        +hasCycle(): boolean
+        +findCycleStart(): Node<T>
+        +reverse(): void
+        +getMiddleElement(): T
+        +removeDuplicatesFromSorted(): void
+        -mergeSort(node: Node<T>, comparator: Comparator<T>): Node<T>
+        -getMiddle(node: Node<T>): Node<T>
+    }
+
+    class DoublyLinkedNode<T> {
+        -data: T
+        -next: DoublyLinkedNode<T>
+        -prev: DoublyLinkedNode<T>
+        +DoublyLinkedNode(data: T)
+        +getData(): T
+        +setData(data: T): void
+        +getNext(): DoublyLinkedNode<T>
+        +setNext(next: DoublyLinkedNode<T>): void
+        +getPrev(): DoublyLinkedNode<T>
+        +setPrev(prev: DoublyLinkedNode<T>): void
+    }
+
+    class Node<T> {
+        -data: T
+        -next: Node<T>
+        +Node(data: T)
+        +getData(): T
+        +setData(data: T): void
+        +getNext(): Node<T>
+        +setNext(next: Node<T>): void
+    }
+}
+
+package "Data Management" {
+    class OptimizedDataManager {
+        -{static} studentCache: ConcurrentHashMap<String, StudentInfo>
+        -{static} attendanceCache: ConcurrentHashMap<String, List<AttendanceRecord>>
+        -{static} gradeCache: ConcurrentHashMap<String, List<GradeRecord>>
+        -{static} paymentCache: ConcurrentHashMap<String, List<PaymentTransaction>>
+        +{static} authenticateUser(studentID: String, password: String): boolean
+        +{static} getStudentInfo(studentID: String): StudentInfo
+        +{static} getAllStudents(): List<StudentInfo>
+        +{static} getAttendanceRecords(studentID: String): List<AttendanceRecord>
+        +{static} getGradeRecords(studentID: String): List<GradeRecord>
+        +{static} getPaymentTransactions(studentID: String): List<PaymentTransaction>
+        +{static} saveStudentAccount(studentInfo: StudentInfo): boolean
+        +{static} generateUniqueStudentID(): String
+        +{static} logPaymentTransaction(channelName: String, amount: double, studentID: String): void
+        +{static} updateStudentProfile(studentID: String, profileData: String): boolean
+        +{static} updateStudentPassword(studentID: String, newPassword: String): boolean
+        +{static} clearCaches(): void
+        +{static} getCacheStatistics(): String
+        -{static} initializeStudentCache(): void
+        -{static} initializeAttendanceCache(): void
+        -{static} initializeGradeCache(): void
+        -{static} initializePaymentCache(): void
+        -{static} resolveFile(filename: String): File
+        -{static} isValidStudentID(studentID: String): boolean
+    }
+
+    class FileIOManager {
+        -{static} BUFFER_SIZE: int = 8192
+        -{static} BACKUP_SUFFIX: String = ".backup"
+        -{static} lock: ReadWriteLock
+        +{static} readAllLines(file: File): List<String>
+        +{static} readAndProcess(file: File, processor: LineProcessor<T>): List<T>
+        +{static} writeAllLines(file: File, lines: List<String>): void
+        +{static} appendLines(file: File, lines: List<String>): void
+        +{static} appendLine(file: File, line: String): void
+        +{static} updateLines(file: File, updater: LineUpdater): boolean
+        +{static} batchUpdate(fileUpdates: Map<File, List<String>>): void
+        +{static} searchInFile(file: File, pattern: String, caseSensitive: boolean): List<SearchResult>
+        +{static} getFileStats(file: File): FileStats
+        +{static} restoreFromBackup(file: File): boolean
+        +{static} deleteBackup(file: File): boolean
+        +{static} isFileLocked(file: File): boolean
+        +{static} safeDelete(file: File, maxRetries: int): boolean
+        -{static} createBackup(file: File): void
+    }
+
+    class DataValidator {
+        -{static} STUDENT_ID_PATTERN: Pattern
+        -{static} NAME_PATTERN: Pattern
+        -{static} EMAIL_PATTERN: Pattern
+        -{static} PHONE_PATTERN: Pattern
+        -{static} SUBJECT_CODE_PATTERN: Pattern
+        -{static} DATE_FORMATTERS: DateTimeFormatter[]
+        -{static} MIN_GRADE: double = 60.0
+        -{static} MAX_GRADE: double = 100.0
+        +{static} validateStudentID(studentID: String): ValidationResult
+        +{static} validateName(name: String, fieldName: String): ValidationResult
+        +{static} validateDate(dateString: String, fieldName: String): ValidationResult
+        +{static} validateEmail(email: String): ValidationResult
+        +{static} validatePhoneNumber(phone: String): ValidationResult
+        +{static} validateGrade(grade: Double, fieldName: String): ValidationResult
+        +{static} validateSubjectCode(subjectCode: String): ValidationResult
+        +{static} validatePassword(password: String): ValidationResult
+        +{static} validateStudentInfo(studentInfo: StudentInfo): ValidationResult
+        +{static} validateAttendanceRecord(record: AttendanceRecord): ValidationResult
+        +{static} validateGradeRecord(record: GradeRecord): ValidationResult
+        +{static} batchValidate(items: List<T>, validator: Validator<T>): List<ValidationResult>
+        -{static} isProperlyCapitalized(name: String): boolean
+    }
+}
+
+package "Data Models" {
+    class StudentInfo {
+        -id: String
+        -lastName: String
+        -firstName: String
+        -middleName: String
+        -dateOfBirth: String
+        -password: String
+        +StudentInfo(id: String, lastName: String, firstName: String, middleName: String, dateOfBirth: String, password: String)
+        +getId(): String
+        +getLastName(): String
+        +getFirstName(): String
+        +getMiddleName(): String
+        +getDateOfBirth(): String
+        +getPassword(): String
+        +getFullName(): String
+        +toDatabaseFormat(): String
+    }
+
+    class AttendanceRecord {
+        -studentID: String
+        -subjectCode: String
+        -subjectName: String
+        -date: LocalDate
+        -status: String
+        -remarks: String
+        +AttendanceRecord(studentID: String, subjectCode: String, subjectName: String, date: LocalDate, status: String, remarks: String)
+        +getStudentID(): String
+        +getSubjectCode(): String
+        +getSubjectName(): String
+        +getDate(): LocalDate
+        +getStatus(): String
+        +getRemarks(): String
+        +setStatus(status: String): void
+        +setRemarks(remarks: String): void
+        +toCsvFormat(): String
+        +{static} fromCsvFormat(csvLine: String): AttendanceRecord
+    }
+
+    class GradeRecord {
+        -studentID: String
+        -subjectCode: String
+        -subjectName: String
+        -prelimGrade: Double
+        -midtermGrade: Double
+        -tentativeFinalGrade: Double
+        -finalGrade: Double
+        -semester: String
+        -status: String
+        +GradeRecord(...)
+        +getStudentID(): String
+        +getSubjectCode(): String
+        +getSubjectName(): String
+        +getPrelimGrade(): Double
+        +getMidtermGrade(): Double
+        +getTentativeFinalGrade(): Double
+        +getFinalGrade(): Double
+        +getSemester(): String
+        +getStatus(): String
+        +calculateOverallGrade(): Double
+        +toCsvFormat(): String
+        +{static} fromCsvFormat(csvLine: String): GradeRecord
+        +toTableRow(): Object[]
+        -formatGrade(grade: Double): String
+    }
+
+    class PaymentTransaction {
+        -date: String
+        -channel: String
+        -reference: String
+        -amount: String
+        +PaymentTransaction(date: String, channel: String, reference: String, amount: String)
+        +getDate(): String
+        +getChannel(): String
+        +getReference(): String
+        +getAmount(): String
+        +getFormattedAmount(): String
+    }
+
+    class MenuItem {
+        -text: String
+        -icon: String
+        -action: String
+        +MenuItem(text: String, icon: String, action: String)
+        +getText(): String
+        +getIcon(): String
+        +getAction(): String
+        +setText(text: String): void
+        +setIcon(icon: String): void
+        +setAction(action: String): void
+    }
+}
+
+package "Validation Support" {
+    class ValidationResult {
+        -valid: boolean
+        -errors: List<String>
+        -warnings: List<String>
+        +ValidationResult(valid: boolean)
+        +ValidationResult(valid: boolean, errors: List<String>, warnings: List<String>)
+        +isValid(): boolean
+        +getErrors(): List<String>
+        +getWarnings(): List<String>
+        +addError(error: String): void
+        +addWarning(warning: String): void
+        +hasErrors(): boolean
+        +hasWarnings(): boolean
+        +toString(): String
+    }
+
+    interface Validator<T> {
+        +validate(item: T): ValidationResult
+    }
+}
+
+package "File I/O Support" {
+    class SearchResult {
+        -lineNumber: int
+        -line: String
+        +SearchResult(lineNumber: int, line: String)
+        +getLineNumber(): int
+        +getLine(): String
+        +toString(): String
+    }
+
+    class FileStats {
+        -sizeInBytes: long
+        -lineCount: int
+        -wordCount: int
+        +FileStats(sizeInBytes: long, lineCount: int, wordCount: int)
+        +getSizeInBytes(): long
+        +getLineCount(): int
+        +getWordCount(): int
+        +toString(): String
+    }
+
+    interface LineProcessor<T> {
+        +processLine(line: String, lineNumber: int): T
+    }
+
+    interface LineUpdater {
+        +updateLine(originalLine: String, lineNumber: int): String
+    }
+}
+
+' Relationships
+ISLUStudentPortal --> EnhancedDoublyLinkedList : uses
+ISLUStudentPortal --> OptimizedDataManager : uses
+ISLUStudentPortal --> DataValidator : uses
+ISLUStudentPortal --> MenuItem : displays
+
+Login --> OptimizedDataManager : authenticates
+Login --> DataValidator : validates
+Login --> ISLUStudentPortal : creates
+Login --> reqAcc : navigates to
+
+reqAcc --> OptimizedDataManager : saves
+reqAcc --> DataValidator : validates
+reqAcc --> StudentInfo : creates
+
+OptimizedDataManager --> FileIOManager : uses
+OptimizedDataManager --> StudentInfo : manages
+OptimizedDataManager --> AttendanceRecord : manages
+OptimizedDataManager --> GradeRecord : manages
+OptimizedDataManager --> PaymentTransaction : manages
+
+DataValidator --> ValidationResult : returns
+DataValidator --> StudentInfo : validates
+DataValidator --> AttendanceRecord : validates
+DataValidator --> GradeRecord : validates
+DataValidator ..> Validator : implements
+
+FileIOManager --> SearchResult : returns
+FileIOManager --> FileStats : returns
+FileIOManager ..> LineProcessor : uses
+FileIOManager ..> LineUpdater : uses
+
+EnhancedDoublyLinkedList --> DoublyLinkedNode : contains
+EnhancedSinglyLinkedList --> Node : contains
+
+@enduml
+
+@startuml SequenceDiagram_Login
+!theme aws-orange
+
+title Student Login Process - Sequence Diagram
+
+participant "User" as U
+participant "Login" as L
+participant "DataValidator" as DV
+participant "OptimizedDataManager" as ODM
+participant "FileIOManager" as FIM
+participant "Cache" as C
+participant "ISLUStudentPortal" as P
+
+U -> L: Enter credentials (studentID, password)
+activate L
+
+L -> DV: validateStudentID(studentID)
+activate DV
+DV --> L: ValidationResult
+deactivate DV
+
+alt Valid Student ID Format
+    L -> ODM: authenticateUser(studentID, password)
+    activate ODM
+    
+    ODM -> C: get(studentID)
+    activate C
+    
+    alt Cache Hit
+        C --> ODM: StudentInfo
+        deactivate C
+        ODM -> ODM: Check password
+    else Cache Miss
+        C --> ODM: null
+        deactivate C
+        ODM -> FIM: readAllLines(Database.txt)
+        activate FIM
+        FIM --> ODM: List<String>
+        deactivate FIM
+        ODM -> ODM: parseStudentData()
+        ODM -> C: put(studentID, studentInfo)
+        activate C
+        C --> ODM: cached
+        deactivate C
+        ODM -> ODM: Check password
+    end
+    
+    alt Authentication Success
+        ODM --> L: true
+        deactivate ODM
+        
+        L -> P: new ISLUStudentPortal(studentID)
+        activate P
+        
+        P -> ODM: getStudentInfo(studentID)
+        activate ODM
+        ODM -> C: get(studentID)
+        activate C
+        C --> ODM: StudentInfo
+        deactivate C
+        ODM --> P: StudentInfo
+        deactivate ODM
+        
+        P -> P: initializeComponents()
+        P -> P: setupLayout()
+        P -> P: loadAnnouncements()
+        P -> P: startDatabaseMonitoring()
+        
+        P --> U: Show Portal Dashboard
+        deactivate P
+        
+    else Authentication Failed
+        ODM --> L: false
+        deactivate ODM
+        L --> U: Show "Invalid credentials" error
+    end
+    
+else Invalid Student ID Format
+    L --> U: Show "Invalid student ID format" error
+end
+
+deactivate L
+
+@enduml
+
+@startuml SequenceDiagram_DataRetrieval
+!theme aws-orange
+
+title Data Retrieval with Caching - Sequence Diagram
+
+participant "Portal" as P
+participant "OptimizedDataManager" as ODM
+participant "StudentCache" as SC
+participant "AttendanceCache" as AC
+participant "FileIOManager" as FIM
+participant "Database Files" as DB
+
+P -> ODM: getAttendanceRecords(studentID)
+activate ODM
+
+ODM -> ODM: initializeAttendanceCache()
+
+ODM -> AC: get(studentID)
+activate AC
+
+alt Cache Hit
+    AC --> ODM: List<AttendanceRecord>
+    deactivate AC
+    ODM --> P: List<AttendanceRecord>
+    
+else Cache Miss
+    AC --> ODM: null
+    deactivate AC
+    
+    ODM -> FIM: readAllLines(attendanceRecords.txt)
+    activate FIM
+    
+    FIM -> DB: Read file with buffered I/O
+    activate DB
+    DB --> FIM: File contents
+    deactivate DB
+    
+    FIM --> ODM: List<String>
+    deactivate FIM
+    
+    ODM -> ODM: parseAttendanceData()
+    ODM -> ODM: filterByStudentID(studentID)
+    ODM -> ODM: validateAttendanceRecords()
+    
+    ODM -> AC: put(studentID, attendanceRecords)
+    activate AC
+    AC --> ODM: cached
+    deactivate AC
+    
+    ODM --> P: List<AttendanceRecord>
+end
+
+deactivate ODM
+
+@enduml
+
+@startuml UseCaseDiagram
+!theme aws-orange
+
+title ISLU Student Portal - Use Case Diagram
+
+left to right direction
+
+actor "Student" as S
+actor "Administrator" as A
+actor "System" as SYS
+
+package "Student Portal System" {
+    usecase "UC1: Login to System" as UC1
+    usecase "UC2: Register Account" as UC2
+    usecase "UC3: View Profile" as UC3
+    usecase "UC4: Update Profile" as UC4
+    usecase "UC5: Change Password" as UC5
+    usecase "UC6: View Grades" as UC6
+    usecase "UC7: View Attendance" as UC7
+    usecase "UC8: View Schedule" as UC8
+    usecase "UC9: Make Payment" as UC9
+    usecase "UC10: View Payment History" as UC10
+    usecase "UC11: View Announcements" as UC11
+    
+    usecase "UC12: Manage Student Data" as UC12
+    usecase "UC13: Generate Reports" as UC13
+    usecase "UC14: Backup System Data" as UC14
+    usecase "UC15: Restore System Data" as UC15
+    usecase "UC16: Monitor System Performance" as UC16
+    usecase "UC17: Validate Data Integrity" as UC17
+}
+
+' Student use cases
+S --> UC1
+S --> UC2
+S --> UC3
+S --> UC4
+S --> UC5
+S --> UC6
+S --> UC7
+S --> UC8
+S --> UC9
+S --> UC10
+S --> UC11
+
+' Administrator use cases
+A --> UC12
+A --> UC13
+A --> UC14
+A --> UC15
+A --> UC16
+A --> UC17
+
+' System interactions
+UC1 --> SYS : <<validate>>
+UC2 --> SYS : <<create>>
+UC3 --> SYS : <<retrieve>>
+UC4 --> SYS : <<update>>
+UC5 --> SYS : <<authenticate>>
+UC6 --> SYS : <<retrieve>>
+UC7 --> SYS : <<retrieve>>
+UC8 --> SYS : <<retrieve>>
+UC9 --> SYS : <<process>>
+UC10 --> SYS : <<retrieve>>
+UC11 --> SYS : <<retrieve>>
+UC12 --> SYS : <<manage>>
+UC13 --> SYS : <<generate>>
+UC14 --> SYS : <<backup>>
+UC15 --> SYS : <<restore>>
+UC16 --> SYS : <<monitor>>
+UC17 --> SYS : <<validate>>
+
+' Include relationships
+UC1 .> UC3 : <<include>>
+UC4 .> UC17 : <<include>>
+UC2 .> UC17 : <<include>>
+UC9 .> UC1 : <<include>>
+
+' Extend relationships
+UC5 ..> UC4 : <<extend>>
+UC14 ..> UC16 : <<extend>>
+
+@enduml
+
+@startuml ComponentDiagram
+!theme aws-orange
+
+title ISLU Student Portal - Component Diagram
+
+package "Presentation Layer" {
+    component [GUI Components] as GUI
+    component [Login Module] as LOGIN
+    component [Portal Module] as PORTAL
+    component [Registration Module] as REG
+}
+
+package "Business Logic Layer" {
+    component [Optimized Data Manager] as ODM
+    component [Data Validator] as VALIDATOR
+    component [Portal Utilities] as UTILS
+    component [Session Manager] as SESSION
+}
+
+package "Data Access Layer" {
+    component [File I/O Manager] as FIM
+    component [Caching System] as CACHE
+}
+
+package "Data Structures Layer" {
+    component [Enhanced Doubly Linked List] as EDLL
+    component [Enhanced Singly Linked List] as ESLL
+    component [Data Models] as MODELS
+}
+
+package "Data Storage Layer" {
+    database "Database.txt" as DB1
+    database "attendanceRecords.txt" as DB2
+    database "gradeRecords.txt" as DB3
+    database "courseSchedules.txt" as DB4
+    database "paymentLogs.txt" as DB5
+}
+
+' Presentation to Business Logic
+GUI --> ODM
+LOGIN --> ODM
+PORTAL --> ODM
+REG --> ODM
+
+GUI --> VALIDATOR
+LOGIN --> VALIDATOR
+PORTAL --> VALIDATOR
+REG --> VALIDATOR
+
+PORTAL --> UTILS
+PORTAL --> SESSION
+
+' Business Logic to Data Access
+ODM --> FIM
+ODM --> CACHE
+ODM --> VALIDATOR
+
+' Data Access to Storage
+FIM --> DB1
+FIM --> DB2
+FIM --> DB3
+FIM --> DB4
+FIM --> DB5
+
+' Data Structures relationships
+ODM --> EDLL
+ODM --> ESLL
+ODM --> MODELS
+
+CACHE --> MODELS
+EDLL --> MODELS
+ESLL --> MODELS
+
+' Additional relationships
+VALIDATOR --> MODELS
+UTILS --> MODELS
+SESSION --> MODELS
+
+@enduml
+
+@startuml ActivityDiagram_Registration
+!theme aws-orange
+
+title Student Registration Process - Activity Diagram
+
+start
+
+:User opens registration form;
+
+:Enter student information
+(Name, DOB, etc.);
+
+:Validate input data;
+
+if (Input valid?) then (no)
+  :Show validation errors;
+  stop
+else (yes)
+endif
+
+:Generate unique student ID;
+
+:Check for duplicate ID;
+
+if (ID exists?) then (yes)
+  :Generate new unique ID;
+else (no)
+endif
+
+:Create StudentInfo object;
+
+:Validate complete student data;
+
+if (Data valid?) then (no)
+  :Show validation errors;
+  stop
+else (yes)
+endif
+
+:Create backup of database;
+
+:Save to Database.txt;
+
+if (Save successful?) then (no)
+  :Restore from backup;
+  :Show save error;
+  stop
+else (yes)
+endif
+
+:Update student cache;
+
+:Log to UserPasswordID.txt;
+
+:Show success message;
+
+:Clear registration form;
+
+stop
+
+@enduml
+
+@startuml ActivityDiagram_GradeRetrieval
+!theme aws-orange
+
+title Grade Retrieval Process - Activity Diagram
+
+start
+
+:Student requests grades;
+
+:Check grade cache;
+
+if (Cache hit?) then (yes)
+  :Return cached grades;
+  :Display grades to user;
+  stop
+else (no)
+endif
+
+:Read gradeRecords.txt with buffered I/O;
+
+:Parse grade data;
+
+:Filter by student ID;
+
+:Create GradeRecord objects;
+
+:Validate grade records;
+
+if (All records valid?) then (no)
+  :Log validation errors;
+  :Filter out invalid records;
+else (yes)
+endif
+
+:Sort grades by semester;
+
+:Update grade cache;
+
+:Display grades to user;
+
+stop
+
+@enduml
+
+@startuml StateDiagram
+!theme aws-orange
+
+title Student Portal Session - State Diagram
+
+[*] --> LoginScreen
+
+state LoginScreen {
+    [*] --> WaitingForInput
+    WaitingForInput --> Validating : Enter Credentials
+    Validating --> WaitingForInput : Invalid Format
+    Validating --> Authenticating : Valid Format
+    Authenticating --> WaitingForInput : Authentication Failed
+}
+
+LoginScreen --> Dashboard : Authentication Success
+
+state Dashboard {
+    [*] --> MainView
+    MainView --> LoadingData : Select Menu Item
+    LoadingData --> DataView : Data Loaded
+    LoadingData --> MainView : Loading Failed
+    DataView --> MainView : Back Button
+    
+    state DataView {
+        [*] --> ViewingGrades
+        ViewingGrades --> ViewingAttendance
+        ViewingAttendance --> ViewingSchedule
+        ViewingSchedule --> ViewingProfile
+        ViewingProfile --> ViewingPayments
+        ViewingPayments --> ViewingGrades
+    }
+}
+
+Dashboard --> EditingProfile : Edit Profile
+EditingProfile --> Dashboard : Save/Cancel
+
+Dashboard --> MakingPayment : Make Payment
+MakingPayment --> ProcessingPayment : Submit Payment
+ProcessingPayment --> PaymentComplete : Success
+ProcessingPayment --> MakingPayment : Failed
+PaymentComplete --> Dashboard : Continue
+
+Dashboard --> [*] : Logout
+
+@enduml
+
+@startuml PackageDiagram
+!theme aws-orange
+
+title ISLU Student Portal - Package Diagram
+
+package "com.islu.portal" {
+    
+    package "core" {
+        class ISLUStudentPortal
+        class Login
+        class reqAcc
+    }
+    
+    package "data" {
+        class OptimizedDataManager
+        class FileIOManager
+        package "models" {
+            class StudentInfo
+            class AttendanceRecord
+            class GradeRecord
+            class PaymentTransaction
+        }
+    }
+    
+    package "structures" {
+        class EnhancedDoublyLinkedList
+        class EnhancedSinglyLinkedList
+        class DoublyLinkedNode
+        class Node
+    }
+    
+    package "validation" {
+        class DataValidator
+        class ValidationResult
+        interface Validator
+    }
+    
+    package "utils" {
+        class PortalUtils
+        class PortalSession
+        class MenuItem
+    }
+    
+    package "io" {
+        class SearchResult
+        class FileStats
+        interface LineProcessor
+        interface LineUpdater
+    }
+}
+
+' Dependencies
+core ..> data
+core ..> structures
+core ..> validation
+core ..> utils
+
+data ..> structures
+data ..> validation
+data ..> io
+data ..> models
+
+validation ..> models
+utils ..> models
+io ..> models
+
+@enduml
