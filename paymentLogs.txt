@@ -8,3 +8,5 @@ Description: Records all payment transactions made by students for tuition and f
 09/28/2025 03:00 PM,DragonPay (GCash),FIRST SEMESTER 2025-2026 Enrollme.,P 6,500.00,2255146
 09/28/2025 03:02 PM,Payment Received,FIRST SEMESTER 2025-2026 Enrollme.,P 21,500.00,2250605
 09/28/2025 03:02 PM,Payment Received,FIRST SEMESTER 2025-2026 Enrollme.,P 7,500.00,2250605
+09/28/2025 03:17 PM,Payment Received,FIRST SEMESTER 2025-2026 Enrollme.,P 21,500.00,2250605
+09/28/2025 03:17 PM,Payment Received,FIRST SEMESTER 2025-2026 Enrollme.,P 7,500.00,2250605

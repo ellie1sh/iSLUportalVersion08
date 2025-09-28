@@ -3672,7 +3672,7 @@ public class ISLUStudentPortal extends JFrame {
     }
 
     /**
-     * Creates the Statement of Accounts panel matching the UI design
+     * Creates the Statement of Accounts panel matching the HTML UI design exactly
      */
     private JPanel createStatementOfAccountsPanel(MySinglyLinkedList<String> subItems) {
         // Initialize account statement for the current student
@@ -3682,3765 +3682,552 @@ public class ISLUStudentPortal extends JFrame {
         mainPanel.setBackground(new Color(240, 240, 240));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Left panel - Statement of Accounts
-        JPanel leftPanel = createStatementLeftPanel(subItems);
+        // Create main content table layout (70% left, 30% right like HTML)
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setBackground(new Color(240, 240, 240));
+        
+        // Left panel - Statement content (70% width)
+        JPanel leftPanel = createStatementContentPanel(subItems);
         leftPanel.setPreferredSize(new Dimension(700, 0));
 
-        // Right panel - Online Payment Channels
-        JPanel rightPanel = createPaymentChannelsPanel(subItems);
+        // Right panel - Online Payment Channels (30% width) 
+        JPanel rightPanel = createOnlinePaymentChannelsPanel();
         rightPanel.setPreferredSize(new Dimension(350, 0));
+        rightPanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
 
-        mainPanel.add(leftPanel, BorderLayout.CENTER);
-        mainPanel.add(rightPanel, BorderLayout.EAST);
+        tablePanel.add(leftPanel, BorderLayout.CENTER);
+        tablePanel.add(rightPanel, BorderLayout.EAST);
+        
+        mainPanel.add(tablePanel, BorderLayout.CENTER);
 
         return mainPanel;
     }
 
-    private JPanel createStatementLeftPanel(MySinglyLinkedList<String> subItems) {
+    /**
+     * Creates the main statement content panel matching HTML structure
+     */
+    private JPanel createStatementContentPanel(MySinglyLinkedList<String> subItems) {
+        JPanel mainContentPanel = new JPanel();
+        mainContentPanel.setLayout(new BoxLayout(mainContentPanel, BoxLayout.Y_AXIS));
+        mainContentPanel.setBackground(new Color(240, 240, 240));
+        
+        // Statement of Accounts Panel (first panel in HTML)
+        JPanel statementPanel = createStatementOfAccountsMainPanel(subItems);
+        
+        // Fee Breakdown Panel (second panel in HTML)
+        JPanel breakdownPanel = createFeeBreakdownMainPanel();
+        breakdownPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
+        
+        mainContentPanel.add(statementPanel);
+        mainContentPanel.add(breakdownPanel);
+        
+        return mainContentPanel;
+    }
+
+    /**
+     * Creates the Statement of Accounts main panel (matches first mws-panel in HTML)
+     */
+    private JPanel createStatementOfAccountsMainPanel(MySinglyLinkedList<String> subItems) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(0, 0, 0, 0)
-        ));
+        panel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
 
-        // Header
+        // Header - Statement of Accounts (FIRST SEMESTER, 2025-2026)
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setPreferredSize(new Dimension(0, 50));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        headerPanel.setPreferredSize(new Dimension(0, 45));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
         
-        // Get current date
-        java.time.LocalDate currentDate = java.time.LocalDate.now();
-        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM dd, yyyy");
-        String dateStr = currentDate.format(dateFormatter);
-        
-        JLabel headerLabel = new JLabel(subItems.getFirst() + " - As of " + dateStr);
+        JLabel headerLabel = new JLabel("📊 Statement of Accounts (FIRST SEMESTER, 2025-2026)");
         headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        headerLabel.setFont(new Font("Arial", Font.BOLD, 14));
         headerPanel.add(headerLabel, BorderLayout.WEST);
-        
-        // Profile icon on the right
-        JLabel profileIcon = new JLabel("👤");
-        profileIcon.setForeground(Color.WHITE);
-        profileIcon.setFont(new Font("Arial", Font.PLAIN, 24));
-        profileIcon.setHorizontalAlignment(SwingConstants.CENTER);
-        headerPanel.add(profileIcon, BorderLayout.EAST);
         
         panel.add(headerPanel, BorderLayout.NORTH);
 
-        // Content panel
+        // Content panel - matches mws-panel-body in HTML
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBackground(Color.WHITE);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Student Info
-        JPanel studentInfoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        studentInfoPanel.setBackground(Color.WHITE);
-        studentInfoPanel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        studentInfoPanel.setPreferredSize(new Dimension(0, 80));
-        
-        JLabel studentIcon = new JLabel("👤");
-        studentIcon.setFont(new Font("Arial", Font.PLAIN, 20));
-        studentInfoPanel.add(studentIcon);
-        
-        JPanel studentTextPanel = new JPanel();
-        studentTextPanel.setLayout(new BoxLayout(studentTextPanel, BoxLayout.Y_AXIS));
-        studentTextPanel.setBackground(Color.WHITE);
-        
-        JLabel studentIDLabel = new JLabel(studentID);
-        studentIDLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        studentTextPanel.add(studentIDLabel);
-        
-        JLabel studentNameLabel = new JLabel(studentName);
-        studentNameLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        studentTextPanel.add(studentNameLabel);
-        
-        studentInfoPanel.add(studentTextPanel);
-        contentPanel.add(studentInfoPanel);
+        // Student Info section (matches mws-stat-container in HTML)
+        JPanel studentStatPanel = createStudentStatContainer();
+        contentPanel.add(studentStatPanel);
         contentPanel.add(Box.createVerticalStrut(20));
 
-        // Amount Due Section
+        // Amount Due section - matches HTML structure exactly
+        JPanel amountDueSection = createAmountDueSection();
+        contentPanel.add(amountDueSection);
+        contentPanel.add(Box.createVerticalStrut(20));
+
+        // Remaining Balance section
+        JPanel remainingBalanceSection = createRemainingBalanceSection();
+        contentPanel.add(remainingBalanceSection);
+        contentPanel.add(Box.createVerticalStrut(15));
+
+        // Status message section
+        JPanel statusSection = createStatusMessageSection();
+        contentPanel.add(statusSection);
+
+        panel.add(contentPanel, BorderLayout.CENTER);
+        return panel;
+    }
+
+    /**
+     * Creates student stat container (matches mws-stat-container in HTML)
+     */
+    private JPanel createStudentStatContainer() {
+        JPanel statContainer = new JPanel(new BorderLayout());
+        statContainer.setBackground(new Color(245, 245, 245));
+        statContainer.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(220, 220, 220)),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        statContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+
+        // Student icon
+        JLabel studentIcon = new JLabel("👤");
+        studentIcon.setFont(new Font("Arial", Font.PLAIN, 32));
+        studentIcon.setPreferredSize(new Dimension(50, 50));
+        studentIcon.setHorizontalAlignment(SwingConstants.CENTER);
+        statContainer.add(studentIcon, BorderLayout.WEST);
+
+        // Student info text
+        JPanel textPanel = new JPanel();
+        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        textPanel.setBackground(new Color(245, 245, 245));
+        textPanel.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 0));
+
+        JLabel idProgramLabel = new JLabel(studentID + " | BSIT 2");
+        idProgramLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        idProgramLabel.setForeground(new Color(100, 100, 100));
+        textPanel.add(idProgramLabel);
+
+        JLabel nameLabel = new JLabel(getStudentFullName(studentID));
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        nameLabel.setForeground(new Color(50, 50, 50));
+        textPanel.add(nameLabel);
+
+        statContainer.add(textPanel, BorderLayout.CENTER);
+        return statContainer;
+    }
+
+    /**
+     * Creates amount due section matching HTML structure
+     */
+    private JPanel createAmountDueSection() {
         JPanel amountPanel = new JPanel();
         amountPanel.setLayout(new BoxLayout(amountPanel, BoxLayout.Y_AXIS));
         amountPanel.setBackground(Color.WHITE);
-        
-        // Total Balance Section
-        JLabel totalBalanceLabel = new JLabel("Total Balance Due:");
-        totalBalanceLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        amountPanel.add(totalBalanceLabel);
-        
-        JLabel totalBalanceValue = new JLabel("P " + String.format("%,.2f", accountStatement.getBalance()));
-        totalBalanceValue.setFont(new Font("Arial", Font.BOLD, 24));
-        totalBalanceValue.setForeground(accountStatement.getBalance() > 0 ? new Color(200, 0, 0) : new Color(0, 150, 0));
-        amountDueValueLabel = totalBalanceValue; // Store reference for updates
-        amountPanel.add(totalBalanceValue);
+        amountPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Determine current exam period
+        String currentPeriod = getCurrentExamPeriod();
+        double amountDue = getCurrentExamPeriodDue(currentPeriod);
+
+        // "Your amount due for PRELIM is:" text
+        JLabel amountDueText = new JLabel("Your amount due for " + currentPeriod + " is:");
+        amountDueText.setFont(new Font("Arial", Font.PLAIN, 30));
+        amountDueText.setAlignmentX(Component.LEFT_ALIGNMENT);
+        amountPanel.add(amountDueText);
         amountPanel.add(Box.createVerticalStrut(10));
-        
-        // Exam Period Dues
-        JLabel prelimDueLabel = new JLabel("Prelim Exam Due: P " + 
-            String.format("%,.2f", accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.PRELIM)));
-        prelimDueLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        amountPanel.add(prelimDueLabel);
-        
-        JLabel midtermDueLabel = new JLabel("Midterm Exam Due: P " + 
-            String.format("%,.2f", accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.MIDTERM)));
-        midtermDueLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        amountPanel.add(midtermDueLabel);
-        
-        JLabel finalsDueLabel = new JLabel("Finals Exam Due: P " + 
-            String.format("%,.2f", accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.FINALS)));
-        finalsDueLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        amountPanel.add(finalsDueLabel);
-        
-        contentPanel.add(amountPanel);
-        contentPanel.add(Box.createVerticalStrut(10));
 
-        // Overpayment Section
-        JPanel overpaymentPanel = new JPanel();
-        overpaymentPanel.setLayout(new BoxLayout(overpaymentPanel, BoxLayout.Y_AXIS));
-        overpaymentPanel.setBackground(Color.WHITE);
-        
-        // Reuse the currentDate and dateFormatter from header, just create new formatted string
-        String currentDateStr = currentDate.format(dateFormatter);
-        
-        if (accountStatement.getOverpayment() > 0) {
-            JLabel overpaymentLabel = new JLabel("Overpayment/Credit Balance as of " + currentDateStr + ":");
-            overpaymentLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-            overpaymentPanel.add(overpaymentLabel);
-            
-            JLabel overpaymentValue = new JLabel("P " + String.format("%,.2f", accountStatement.getOverpayment()));
-            overpaymentValue.setFont(new Font("Arial", Font.BOLD, 20));
-            overpaymentValue.setForeground(new Color(0, 100, 200));
-            overpaymentValueLabel = overpaymentValue; // Store reference for updates
-            overpaymentPanel.add(overpaymentValue);
-        } else {
-            JLabel paymentSummaryLabel = new JLabel("Payment Summary as of " + currentDateStr + ":");
-            paymentSummaryLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-            overpaymentPanel.add(paymentSummaryLabel);
-            
-            JLabel totalAmountLabel = new JLabel("Total Amount: P " + String.format("%,.2f", accountStatement.getTotalAmount()));
-            totalAmountLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-            overpaymentPanel.add(totalAmountLabel);
-            
-            JLabel amountPaidLabel = new JLabel("Amount Paid: P " + String.format("%,.2f", accountStatement.getAmountPaid()));
-            amountPaidLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-            overpaymentPanel.add(amountPaidLabel);
-        }
-        
-        contentPanel.add(overpaymentPanel);
-        contentPanel.add(Box.createVerticalStrut(15));
+        // Amount value - large red/green text
+        JPanel amountValuePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        amountValuePanel.setBackground(Color.WHITE);
+        amountValuePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Exam Payment Status Section
-        JPanel examStatusPanel = new JPanel();
-        examStatusPanel.setLayout(new BoxLayout(examStatusPanel, BoxLayout.Y_AXIS));
-        examStatusPanel.setBackground(Color.WHITE);
-        
-        // Use the already declared currentDateStr variable
-        examStatusPanel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            "Exam Payment Status as of " + currentDateStr,
-            javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
-            javax.swing.border.TitledBorder.DEFAULT_POSITION,
-            new Font("Arial", Font.BOLD, 14),
-            new Color(10, 45, 90)
-        ));
-        
-        // Update payment statuses
-        accountStatement.updatePaymentStatuses();
-        
-        // Prelim Status with eligibility message
-        String prelimStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.PRELIM);
-        Color prelimStatusColor = accountStatement.isPrelimPaid() ? 
-            new Color(0, 150, 0) : new Color(200, 0, 0);
-        
-        JLabel prelimStatusLabel = new JLabel(prelimStatusText);
-        prelimStatusLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        prelimStatusLabel.setForeground(prelimStatusColor);
-        this.prelimStatusLabel = prelimStatusLabel;
-        examStatusPanel.add(prelimStatusLabel);
-        examStatusPanel.add(Box.createVerticalStrut(5));
-        
-        // Midterm Status with eligibility message
-        String midtermStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.MIDTERM);
-        Color midtermStatusColor = accountStatement.isMidtermPaid() ? 
-            new Color(0, 150, 0) : new Color(200, 0, 0);
-        
-        JLabel midtermStatusLabel = new JLabel(midtermStatusText);
-        midtermStatusLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        midtermStatusLabel.setForeground(midtermStatusColor);
-        this.midtermStatusLabel = midtermStatusLabel;
-        examStatusPanel.add(midtermStatusLabel);
-        examStatusPanel.add(Box.createVerticalStrut(5));
-        
-        // Finals Status with eligibility message  
-        String finalsStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.FINALS);
-        Color finalsStatusColor = accountStatement.isFinalsPaid() ? 
-            new Color(0, 150, 0) : new Color(200, 0, 0);
-        
-        JLabel finalsStatusLabel = new JLabel(finalsStatusText);
-        finalsStatusLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        finalsStatusLabel.setForeground(finalsStatusColor);
-        this.finalsStatusLabel = finalsStatusLabel;
-        examStatusPanel.add(finalsStatusLabel);
-        
-        contentPanel.add(examStatusPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
+        JLabel pesoSign = new JLabel("P ");
+        pesoSign.setFont(new Font("Arial", Font.BOLD, 50));
+        pesoSign.setForeground(Color.BLACK);
 
-        // Breakdown of Fees
-        JPanel breakdownPanel = createBreakdownPanel();
-        contentPanel.add(breakdownPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
+        JLabel amountValue = new JLabel(String.format("%.2f", amountDue));
+        amountValue.setFont(new Font("Arial", Font.BOLD, 50));
+        amountValue.setForeground(amountDue > 0 ? new Color(144, 24, 24) : new Color(0, 153, 0));
+        amountDueValueLabel = amountValue; // Store reference for updates
 
-        // Online Payment Transactions
-        JPanel transactionsPanel = createTransactionsPanel();
-        contentPanel.add(transactionsPanel);
+        amountValuePanel.add(pesoSign);
+        amountValuePanel.add(amountValue);
+        amountPanel.add(amountValuePanel);
 
-        panel.add(contentPanel, BorderLayout.CENTER);
-        return panel;
+        return amountPanel;
     }
 
-    private JPanel createBreakdownPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+    /**
+     * Creates remaining balance section
+     */
+    private JPanel createRemainingBalanceSection() {
+        JPanel balancePanel = new JPanel();
+        balancePanel.setLayout(new BoxLayout(balancePanel, BoxLayout.Y_AXIS));
+        balancePanel.setBackground(Color.WHITE);
+        balancePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Header
-        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setPreferredSize(new Dimension(0, 40));
-        
         // Get current date
         java.time.LocalDate currentDate = java.time.LocalDate.now();
         java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM dd, yyyy");
         String dateStr = currentDate.format(dateFormatter);
-        
-        JLabel headerLabel = new JLabel("Fee Breakdown as of " + dateStr);
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        headerPanel.add(headerLabel);
-        
-        panel.add(headerPanel, BorderLayout.NORTH);
 
-        // Update payment statuses first
-        accountStatement.updatePaymentStatuses();
-        
-        // Table with status column
-        String[] columnNames = {"Date", "Description", "Amount", "Status"};
-        
-        // Get fee breakdowns from account statement
-        List<FeeBreakdown> fees = accountStatement.getFeeBreakdowns();
-        Object[][] data = new Object[fees.size() + 3][4]; // +3 for header, total, and balance rows, 4 columns
-        
-        // Add beginning balance row
-        data[0] = new Object[]{"", "ASSESSMENT DETAILS", "", ""};
-        
-        // Add fee items with status
-        int row = 1;
-        for (FeeBreakdown fee : fees) {
-            data[row] = fee.toTableRowWithStatus();
-            row++;
-        }
-        
-        // Add total row
-        data[row] = new Object[]{"", "TOTAL ASSESSMENT", String.format("P %,.2f", accountStatement.getTotalAmount()), ""};
-        row++;
-        
-        // Add balance row with current date
-        java.time.format.DateTimeFormatter shortDateFormatter = java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy");
-        String shortDateStr = currentDate.format(shortDateFormatter);
-        String balanceStatus = accountStatement.getBalance() <= 0 ? "FULLY PAID" : "UNPAID";
-        data[row] = new Object[]{shortDateStr, "CURRENT BALANCE", String.format("P %,.2f", accountStatement.getBalance()), balanceStatus};
+        // "Your remaining balance as of..." text
+        JLabel balanceText = new JLabel("Your remaining balance as of " + dateStr + " is:");
+        balanceText.setFont(new Font("Arial", Font.PLAIN, 20));
+        balanceText.setAlignmentX(Component.LEFT_ALIGNMENT);
+        balancePanel.add(balanceText);
+        balancePanel.add(Box.createVerticalStrut(10));
 
-        feeBreakdownTableModel = new DefaultTableModel(data, columnNames) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        
-        JTable table = new JTable(feeBreakdownTableModel);
-        table.setRowHeight(25);
-        table.getTableHeader().setBackground(new Color(240, 240, 240));
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
-        
-        // Custom renderer for formatting
-        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, 
-                    boolean isSelected, boolean hasFocus, int row, int column) {
-                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                
-                // Bold for header and total rows
-                if (row == 0 || row >= table.getRowCount() - 2) {
-                    setFont(getFont().deriveFont(Font.BOLD));
-                }
-                
-                // Right align amounts
-                if (column == 2) {
-                    setHorizontalAlignment(SwingConstants.RIGHT);
-                } else {
-                    setHorizontalAlignment(SwingConstants.LEFT);
-                }
-                
-                return this;
-            }
-        });
-        
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setPreferredSize(new Dimension(0, 250));
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        // Add exam eligibility indicator panel
-        JPanel eligibilityPanel = new JPanel();
-        eligibilityPanel.setLayout(new BoxLayout(eligibilityPanel, BoxLayout.Y_AXIS));
-        eligibilityPanel.setBackground(new Color(245, 245, 245));
-        eligibilityPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Title
-        JLabel eligibilityTitle = new JLabel("Examination Eligibility Status:");
-        eligibilityTitle.setFont(new Font("Arial", Font.BOLD, 13));
-        eligibilityTitle.setForeground(new Color(10, 45, 90));
-        eligibilityPanel.add(eligibilityTitle);
-        eligibilityPanel.add(Box.createVerticalStrut(5));
-        
-        // Prelim eligibility
-        JLabel prelimEligibility = new JLabel(accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.PRELIM));
-        prelimEligibility.setFont(new Font("Arial", Font.PLAIN, 12));
-        prelimEligibility.setForeground(accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.PRELIM) <= 0 ? 
-            new Color(0, 150, 0) : new Color(200, 0, 0));
-        eligibilityPanel.add(prelimEligibility);
-        
-        // Midterm eligibility
-        JLabel midtermEligibility = new JLabel(accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.MIDTERM));
-        midtermEligibility.setFont(new Font("Arial", Font.PLAIN, 12));
-        midtermEligibility.setForeground(accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.MIDTERM) <= 0 ? 
-            new Color(0, 150, 0) : new Color(200, 0, 0));
-        eligibilityPanel.add(midtermEligibility);
-        
-        // Finals eligibility
-        JLabel finalsEligibility = new JLabel(accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.FINALS));
-        finalsEligibility.setFont(new Font("Arial", Font.PLAIN, 12));
-        finalsEligibility.setForeground(accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.FINALS) <= 0 ? 
-            new Color(0, 150, 0) : new Color(200, 0, 0));
-        eligibilityPanel.add(finalsEligibility);
-        
-        // Add note about processing payments
-        boolean hasProcessingPayments = accountStatement.getPaymentHistory().stream()
-            .anyMatch(p -> p.getStatus() != null && p.getStatus().isInProgress());
-        
-        if (hasProcessingPayments) {
-            eligibilityPanel.add(Box.createVerticalStrut(5));
-            JLabel processingNote = new JLabel("⚠ Payment is being processed. Status will update shortly.");
-            processingNote.setFont(new Font("Arial", Font.ITALIC, 11));
-            processingNote.setForeground(new Color(255, 140, 0));
-            eligibilityPanel.add(processingNote);
-        }
-        
-        panel.add(eligibilityPanel, BorderLayout.SOUTH);
+        // Balance value - large red/green text
+        JPanel balanceValuePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        balanceValuePanel.setBackground(Color.WHITE);
+        balanceValuePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        return panel;
+        JLabel pesoSign = new JLabel("P ");
+        pesoSign.setFont(new Font("Arial", Font.BOLD, 50));
+        pesoSign.setForeground(Color.BLACK);
+
+        double balance = accountStatement.getBalance();
+        JLabel balanceValue = new JLabel(String.format("%,.2f", balance));
+        balanceValue.setFont(new Font("Arial", Font.BOLD, 50));
+        balanceValue.setForeground(balance > 0 ? new Color(144, 24, 24) : new Color(0, 153, 0));
+
+        balanceValuePanel.add(pesoSign);
+        balanceValuePanel.add(balanceValue);
+        balancePanel.add(balanceValuePanel);
+
+        return balancePanel;
     }
 
-    private JPanel createTransactionsPanel() {
+    /**
+     * Creates status message section
+     */
+    private JPanel createStatusMessageSection() {
+        JPanel statusPanel = new JPanel();
+        statusPanel.setLayout(new BoxLayout(statusPanel, BoxLayout.Y_AXIS));
+        statusPanel.setBackground(Color.WHITE);
+        statusPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Status message based on current exam period
+        String currentPeriod = getCurrentExamPeriod();
+        boolean isPaid = isCurrentExamPeriodPaid(currentPeriod);
+        
+        JLabel statusLabel;
+        if (isPaid) {
+            statusLabel = new JLabel(currentPeriod + " STATUS: PAID. Permitted to take the exams.");
+            statusLabel.setForeground(new Color(0, 128, 0));
+        } else {
+            statusLabel = new JLabel(currentPeriod + " STATUS: NOT PAID. Please pay before " + 
+                currentPeriod.toLowerCase() + " exams. Ignore if you're SLU Dependent or Full TOF Scholar.");
+            statusLabel.setForeground(new Color(200, 0, 0));
+        }
+        
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        statusPanel.add(statusLabel);
+        statusPanel.add(Box.createVerticalStrut(5));
+
+        // Verification note
+        JLabel verificationNote = new JLabel("For verification on unposted payments after 'as of' date, please email sass@slu.edu.ph");
+        verificationNote.setFont(new Font("Arial", Font.PLAIN, 11));
+        verificationNote.setForeground(new Color(100, 100, 100));
+        verificationNote.setAlignmentX(Component.LEFT_ALIGNMENT);
+        statusPanel.add(verificationNote);
+
+        return statusPanel;
+    }
+
+    /**
+     * Creates the Fee Breakdown panel (matches second mws-panel in HTML)
+     */
+    private JPanel createFeeBreakdownMainPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
 
         // Header
-        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setPreferredSize(new Dimension(0, 40));
-        
-        // Get current date
-        java.time.LocalDate currentDate2 = java.time.LocalDate.now();
-        java.time.format.DateTimeFormatter dateFormatter2 = java.time.format.DateTimeFormatter.ofPattern("MMMM dd, yyyy");
-        String dateStr2 = currentDate2.format(dateFormatter2);
-        
-        JLabel headerLabel = new JLabel("Payment History as of " + dateStr2);
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        headerPanel.add(headerLabel);
-        
-        panel.add(headerPanel, BorderLayout.NORTH);
-
-        // Update payment statuses
-        accountStatement.updatePaymentStatuses();
-        
-        // Table with status
-        String[] columnNames = {"Date", "Channel", "Reference", "Amount", "Status"};
-        
-        // Get payment history from account statement
-        List<PaymentTransaction> payments = accountStatement.getPaymentHistory();
-        Object[][] data = new Object[payments.size()][5];
-        
-        for (int i = 0; i < payments.size(); i++) {
-            data[i] = payments.get(i).toTableRow();
-        }
-
-        paymentTableModel = new DefaultTableModel(data, columnNames) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        
-        JTable table = new JTable(paymentTableModel);
-        table.setRowHeight(25);
-        table.getTableHeader().setBackground(new Color(240, 240, 240));
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
-        
-        // Custom renderer for formatting
-        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, 
-                    boolean isSelected, boolean hasFocus, int row, int column) {
-                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                
-                // Right align amounts
-                if (column == 3) {
-                    setHorizontalAlignment(SwingConstants.RIGHT);
-                } else {
-                    setHorizontalAlignment(SwingConstants.LEFT);
-                }
-                
-                return this;
-            }
-        });
-        
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setPreferredSize(new Dimension(0, 200));
-        panel.add(scrollPane, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    /**
-     * Creates the Transcript of Records panel matching the UI design
-     */
-    private JPanel createTranscriptOfRecordsPanel(MySinglyLinkedList<String> subItems) {
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(new Color(240, 240, 240));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Content panel
-        JPanel contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-
-        // Header - Transcript of Records
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setPreferredSize(new Dimension(0, 50));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        headerPanel.setPreferredSize(new Dimension(0, 45));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
         
-        JLabel headerLabel = new JLabel(subItems.toString());
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        headerPanel.add(headerLabel, BorderLayout.WEST);
-        
-        contentPanel.add(headerPanel, BorderLayout.NORTH);
-
-        // Create transcript table with all semesters
-        String[] columnNames = {"Course Number", "Descriptive Title", "Grade", "Units"};
-        
-        // Generate random grades (76-99)
-        Object[][] transcriptData = generateTranscriptData();
-        
-        DefaultTableModel transcriptModel = new DefaultTableModel(transcriptData, columnNames) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Make all cells non-editable
-            }
-        };
-
-        JTable transcriptTable = new JTable(transcriptModel);
-        transcriptTable.setRowHeight(30);
-        transcriptTable.getTableHeader().setReorderingAllowed(false);
-        transcriptTable.setAutoCreateRowSorter(false);
-        transcriptTable.setShowGrid(true);
-        transcriptTable.setGridColor(new Color(200, 200, 200));
-        transcriptTable.setFont(new Font("Arial", Font.PLAIN, 12));
-        
-        // Style the table
-        transcriptTable.getTableHeader().setBackground(new Color(240, 240, 240));
-        transcriptTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
-        
-        // Set column alignments
-        transcriptTable.getColumnModel().getColumn(0).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
-            @Override
-            public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                setHorizontalAlignment(SwingConstants.LEFT);
-                return this;
-            }
-        });
-        
-        transcriptTable.getColumnModel().getColumn(1).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
-            @Override
-            public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                setHorizontalAlignment(SwingConstants.LEFT);
-                return this;
-            }
-        });
-        
-        transcriptTable.getColumnModel().getColumn(2).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
-            @Override
-            public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                setHorizontalAlignment(SwingConstants.RIGHT);
-                return this;
-            }
-        });
-        
-        transcriptTable.getColumnModel().getColumn(3).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
-            @Override
-            public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                setHorizontalAlignment(SwingConstants.RIGHT);
-                return this;
-            }
-        });
-
-        JScrollPane scrollPane = new JScrollPane(transcriptTable);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        contentPanel.add(scrollPane, BorderLayout.CENTER);
-
-        mainPanel.add(contentPanel, BorderLayout.CENTER);
-        return mainPanel;
-    }
-
-    private JPanel createPaymentChannelsPanel(MySinglyLinkedList<String> subItems) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(0, 0, 0, 0)
-        ));
-
-        // Header
-        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setPreferredSize(new Dimension(0, 50));
-        
-        JLabel headerLabel = new JLabel(subItems.get(1));
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        headerPanel.add(headerLabel);
-        
-        panel.add(headerPanel, BorderLayout.NORTH);
-
-        // Content
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(new Color(240, 240, 240));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
         // Get current date
         java.time.LocalDate currentDate = java.time.LocalDate.now();
         java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM dd, yyyy");
         String dateStr = currentDate.format(dateFormatter);
         
-        JLabel instructionLabel = new JLabel("<html>Tuition fees can be paid via the available online payment channels.<br>Last updated: " + dateStr + "</html>");
-        instructionLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        instructionLabel.setForeground(Color.DARK_GRAY);
-        contentPanel.add(instructionLabel);
-        contentPanel.add(Box.createVerticalStrut(20));
+        JLabel headerLabel = new JLabel("📋 Breakdown of fees as of " + dateStr);
+        headerLabel.setForeground(Color.WHITE);
+        headerLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        headerPanel.add(headerLabel, BorderLayout.WEST);
+        
+        panel.add(headerPanel, BorderLayout.NORTH);
 
-        // Payment channel buttons
-        String[] channels = {
-            "UnionBank UPay Online",
-            "Dragonpay Payment Gateway", 
-            "BPI BPI Online",
-            "BDO BDO Online",
-            "BDO Bills Payment",
-            "Bukas Tuition Installment Plans",
-            "Cashier Onsite Payment"
+        // Table panel with no padding (matches HTML mws-panel-body style="padding: 0px;")
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setBackground(Color.WHITE);
+        
+        // Create table matching HTML structure exactly
+        String[] columnNames = {"Date", "Description", "Amount"};
+        
+        // Build table data matching the HTML structure
+        java.util.List<Object[]> tableData = new java.util.ArrayList<>();
+        
+        // Beginning balance row
+        tableData.add(new Object[]{"", "BEGINNING BALANCE", "0.00"});
+        
+        // Payment history (negative amounts in parentheses)
+        for (PaymentTransaction payment : accountStatement.getPaymentHistory()) {
+            String amount = payment.getAmount().replace("P ", "").replace(",", "");
+            try {
+                double amountValue = Double.parseDouble(amount);
+                String formattedAmount = String.format("(%,.2f)", amountValue);
+                
+                String dateStr2 = payment.getDate().contains(" ") ? payment.getDate().split(" ")[0] : payment.getDate();
+                tableData.add(new Object[]{dateStr2, "PAYMENT RECEIVED (" + payment.getReference() + ")", formattedAmount});
+            } catch (NumberFormatException e) {
+                tableData.add(new Object[]{payment.getDate(), "PAYMENT RECEIVED (" + payment.getReference() + ")", payment.getAmount()});
+            }
+        }
+        
+        // Fee breakdown items
+        for (FeeBreakdown fee : accountStatement.getFeeBreakdowns()) {
+            if (fee.getAmount() > 0) { // Only show positive fees in breakdown
+                String feeDate = fee.getDatePosted().format(java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy"));
+                String feeAmount = String.format("%,.2f", fee.getAmount());
+                tableData.add(new Object[]{feeDate, fee.getDescription(), feeAmount});
+            }
+        }
+        
+        // Convert to array
+        Object[][] data = tableData.toArray(new Object[0][]);
+        
+        DefaultTableModel tableModel = new DefaultTableModel(data, columnNames) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
         };
-
-        Color[] colors = {
-            new Color(255, 140, 0), // Orange
-            new Color(255, 69, 0),  // Red-Orange
-            new Color(220, 20, 60), // Crimson
-            new Color(0, 100, 200), // Blue
-            new Color(0, 100, 200), // Blue
-            new Color(135, 206, 235), // Light Blue
-            new Color(100, 100, 100) // Gray for onsite
-        };
-
-        for (int i = 0; i < channels.length; i++) {
-            JButton channelButton = new JButton(channels[i]);
-            channelButton.setBackground(colors[i]);
-            channelButton.setForeground(Color.WHITE);
-            channelButton.setFont(new Font("Arial", Font.BOLD, 12));
-            channelButton.setPreferredSize(new Dimension(250, 40));
-            channelButton.setFocusPainted(false);
-            channelButton.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
-            
-            // Add action listener for payment processing
-            final String channelName = channels[i];
-            channelButton.addActionListener(e -> {
-                if (channelName.contains("Cashier")) {
-                    showOnsitePaymentDialog(channelName);
+        
+        JTable table = new JTable(tableModel);
+        table.setRowHeight(25);
+        table.setShowGrid(true);
+        table.setGridColor(new Color(230, 230, 230));
+        table.getTableHeader().setBackground(new Color(240, 240, 240));
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
+        table.setFont(new Font("Arial", Font.PLAIN, 12));
+        
+        // Set column widths to match HTML
+        table.getColumnModel().getColumn(0).setPreferredWidth(70);  // Date column
+        table.getColumnModel().getColumn(1).setPreferredWidth(400); // Description column  
+        table.getColumnModel().getColumn(2).setPreferredWidth(70);  // Amount column
+        
+        // Custom renderer for formatting
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, 
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                
+                // Right align amounts (column 2)
+                if (column == 2) {
+                    setHorizontalAlignment(SwingConstants.RIGHT);
+                    setFont(getFont().deriveFont(Font.BOLD));
                 } else {
-                    showPaymentDialog(channelName);
+                    setHorizontalAlignment(SwingConstants.LEFT);
                 }
-            });
+                
+                // Italic for dates in column 0 (except empty ones)
+                if (column == 0 && value != null && !value.toString().isEmpty()) {
+                    setFont(getFont().deriveFont(Font.ITALIC));
+                }
+                
+                return this;
+            }
+        });
+        
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setPreferredSize(new Dimension(0, 300));
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+        
+        panel.add(tablePanel, BorderLayout.CENTER);
+        return panel;
+    }
+
+    /**
+     * Creates the Online Payment Channels panel (matches right side of HTML)
+     */
+    private JPanel createOnlinePaymentChannelsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+
+        // Header
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(10, 45, 90));
+        headerPanel.setPreferredSize(new Dimension(0, 45));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        
+        JLabel headerLabel = new JLabel("🛒 Online Payment Channels");
+        headerLabel.setForeground(Color.WHITE);
+        headerLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        headerPanel.add(headerLabel, BorderLayout.WEST);
+        
+        panel.add(headerPanel, BorderLayout.NORTH);
+
+        // Content panel
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Title text
+        JLabel titleLabel = new JLabel("<html><center><b>Tuition fees can be paid via the available online payment channels.</b></center></html>");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        titleLabel.setForeground(new Color(14, 40, 79));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contentPanel.add(titleLabel);
+        contentPanel.add(Box.createVerticalStrut(10));
+
+        // Payment buttons
+        createPaymentButtons(contentPanel);
+
+        panel.add(contentPanel, BorderLayout.CENTER);
+        return panel;
+    }
+
+    /**
+     * Creates payment buttons for online payment channels
+     */
+    private void createPaymentButtons(JPanel contentPanel) {
+        String[] paymentOptions = {
+            "UnionBank UPay Online",
+            "DragonPay Payment Gateway", 
+            "BPI Online",
+            "BDO Online",
+            "BDO Bills Payment",
+            "Bukas Tuition Installment Plans"
+        };
+        
+        String[] paymentIcons = {"🏦", "🐲", "🏛️", "🏢", "💳", "📚"};
+        Color[] buttonColors = {
+            new Color(255, 140, 0),   // Orange for UPay
+            new Color(220, 20, 60),   // Crimson for DragonPay
+            new Color(0, 100, 200),   // Blue for BPI
+            new Color(0, 80, 160),    // Dark Blue for BDO
+            new Color(0, 120, 180),   // Medium Blue for BDO Bills
+            new Color(46, 125, 50)    // Green for Bukas
+        };
+
+        for (int i = 0; i < paymentOptions.length; i++) {
+            JButton paymentButton = new JButton(paymentIcons[i] + " " + paymentOptions[i]);
+            paymentButton.setFont(new Font("Arial", Font.BOLD, 13));
+            paymentButton.setForeground(Color.WHITE);
+            paymentButton.setBackground(buttonColors[i]);
+            paymentButton.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+            paymentButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+            paymentButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+            paymentButton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
             
-            contentPanel.add(channelButton);
+            final String paymentMethod = paymentOptions[i];
+            paymentButton.addActionListener(e -> handlePaymentButtonClick(paymentMethod));
+            
+            contentPanel.add(paymentButton);
             contentPanel.add(Box.createVerticalStrut(10));
         }
-
-        panel.add(contentPanel, BorderLayout.CENTER);
-        return panel;
     }
 
-    // Fields to track payment information
-    private AccountStatement accountStatement; // Account statement for current student
-    private JLabel overpaymentValueLabel; // Reference to update the display
-    private JLabel amountDueValueLabel; // Reference to update the amount due display
-    private JLabel prelimStatusLabel; // Reference to update the PRELIM STATUS display
-    private JLabel midtermStatusLabel; // Reference to update the MIDTERM STATUS display
-    private JLabel finalsStatusLabel; // Reference to update the FINALS STATUS display
-    private DefaultTableModel paymentTableModel; // Reference to payment transactions table model
-    private DefaultTableModel feeBreakdownTableModel; // Reference to fee breakdown table model
-
     /**
-     * Shows onsite payment dialog for cashier payment
+     * Handles payment button clicks
      */
-    private void showOnsitePaymentDialog(String channelName) {
-        JDialog paymentDialog = new JDialog(this, "Onsite Payment - " + channelName, true);
-        paymentDialog.setSize(450, 350);
-        paymentDialog.setLocationRelativeTo(this);
-        paymentDialog.setLayout(new BorderLayout());
-
-        // Header
-        JPanel headerPanel = new JPanel();
-        headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+    private void handlePaymentButtonClick(String paymentMethod) {
+        String currentPeriod = getCurrentExamPeriod();
+        double amountDue = getCurrentExamPeriodDue(currentPeriod);
         
-        JLabel headerLabel = new JLabel("Onsite Payment Information");
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        headerPanel.add(headerLabel);
-        
-        paymentDialog.add(headerPanel, BorderLayout.NORTH);
-
-        // Main content panel
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        contentPanel.setBackground(Color.WHITE);
-
-        // Information panel
-        JPanel infoPanel = new JPanel();
-        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
-        infoPanel.setBackground(new Color(245, 245, 245));
-        infoPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        
-        JLabel infoTitle = new JLabel("ℹ Onsite Payment Instructions:");
-        infoTitle.setFont(new Font("Arial", Font.BOLD, 13));
-        infoPanel.add(infoTitle);
-        infoPanel.add(Box.createVerticalStrut(10));
-        
-        String[] instructions = {
-            "1. Proceed to the Cashier's Office",
-            "2. Present your Student ID",
-            "3. Inform the cashier of your payment amount",
-            "4. Receive your Official Receipt",
-            "5. Payment will be posted within 1-2 hours"
-        };
-        
-        for (String instruction : instructions) {
-            JLabel instrLabel = new JLabel(instruction);
-            instrLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-            infoPanel.add(instrLabel);
-            infoPanel.add(Box.createVerticalStrut(3));
-        }
-        
-        contentPanel.add(infoPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-        
-        // Amount to Pay
-        JPanel amountPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        amountPanel.setBackground(Color.WHITE);
-        JLabel amountLabel = new JLabel("Amount to Pay:");
-        amountLabel.setPreferredSize(new Dimension(150, 25));
-        amountLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        amountPanel.add(amountLabel);
-        
-        JTextField amountField = new JTextField();
-        amountField.setPreferredSize(new Dimension(150, 25));
-        amountPanel.add(amountField);
-        contentPanel.add(amountPanel);
-        contentPanel.add(Box.createVerticalStrut(15));
-        
-        // OR Number (optional)
-        JPanel orPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        orPanel.setBackground(Color.WHITE);
-        JLabel orLabel = new JLabel("OR Number (if available):");
-        orLabel.setPreferredSize(new Dimension(150, 25));
-        orLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        orPanel.add(orLabel);
-        
-        JTextField orField = new JTextField();
-        orField.setPreferredSize(new Dimension(150, 25));
-        orPanel.add(orField);
-        contentPanel.add(orPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-        
-        // Note
-        JLabel noteLabel = new JLabel("<html><i>Note: This will record your intent to pay onsite.<br>" +
-            "Actual payment must be made at the Cashier's Office.</i></html>");
-        noteLabel.setFont(new Font("Arial", Font.ITALIC, 11));
-        noteLabel.setForeground(new Color(100, 100, 100));
-        contentPanel.add(noteLabel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Buttons panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-        buttonPanel.setBackground(Color.WHITE);
-        
-        JButton submitButton = new JButton("Record Payment");
-        submitButton.setBackground(new Color(100, 100, 100));
-        submitButton.setForeground(Color.WHITE);
-        submitButton.setFont(new Font("Arial", Font.BOLD, 12));
-        submitButton.setPreferredSize(new Dimension(130, 35));
-        submitButton.addActionListener(e -> {
-            String amountStr = amountField.getText().trim();
-            String orNumber = orField.getText().trim();
+        String amountStr = JOptionPane.showInputDialog(this, 
+            "Enter payment amount for " + paymentMethod + ":", 
+            String.format("%.0f", amountDue));
             
-            if (amountStr.isEmpty()) {
-                JOptionPane.showMessageDialog(paymentDialog, "Please enter the amount to pay", "Missing Information", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            
+        if (amountStr != null && !amountStr.trim().isEmpty()) {
             try {
-                double amount = Double.parseDouble(amountStr.replaceAll(",", ""));
-                if (amount <= 0) {
-                    JOptionPane.showMessageDialog(paymentDialog, "Amount must be greater than 0", "Invalid Amount", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                
-                // Process onsite payment
-                String reference = orNumber.isEmpty() ? "ONSITE-" + System.currentTimeMillis() : orNumber;
-                if (processOnsitePayment(amount, channelName, reference)) {
-                    paymentDialog.dispose();
-                }
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(paymentDialog, "Invalid amount format", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.setBackground(new Color(200, 0, 0));
-        cancelButton.setForeground(Color.WHITE);
-        cancelButton.setFont(new Font("Arial", Font.BOLD, 12));
-        cancelButton.setPreferredSize(new Dimension(80, 35));
-        cancelButton.addActionListener(e -> paymentDialog.dispose());
-        
-        buttonPanel.add(submitButton);
-        buttonPanel.add(cancelButton);
-        contentPanel.add(buttonPanel);
-
-        paymentDialog.add(contentPanel, BorderLayout.CENTER);
-        paymentDialog.setVisible(true);
-    }
-    
-    /**
-     * Process onsite payment
-     */
-    private boolean processOnsitePayment(double amount, String channelName, String reference) {
-        // Process payment using AccountStatementManager
-        AccountStatement.PaymentResult result = AccountStatementManager.processPayment(
-            studentID, amount, channelName, reference
-        );
-        
-        if (result.success) {
-            // Update the account statement reference
-            accountStatement = AccountStatementManager.getStatement(studentID);
-            
-            // Add payment to table
-            addPaymentToTable(result.transaction);
-            
-            // Show success message
-            String message = "Onsite Payment Recorded Successfully!\n\n" +
-                "Amount: P " + String.format("%,.2f", amount) + "\n" +
-                "Reference: " + reference + "\n" +
-                "Status: FOR POSTING - Cashier\n\n" +
-                "Please proceed to the Cashier's Office to complete the payment.\n" +
-                "Your payment will be posted within 1-2 hours after cashier verification.\n\n" +
-                "Current Balance: P " + String.format("%,.2f", result.newBalance);
-            
-            JOptionPane.showMessageDialog(this, message, "Payment Recorded", JOptionPane.INFORMATION_MESSAGE);
-            
-            // Refresh the display
-            refreshStatementOfAccounts();
-            
-            return true;
-        } else {
-            JOptionPane.showMessageDialog(this, result.message, "Payment Failed", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-    }
-    
-    /**
-     * Shows payment dialog to collect card information and process payment
-     */
-    private void showPaymentDialog(String channelName) {
-        JDialog paymentDialog = new JDialog(this, "Payment - " + channelName, true);
-        paymentDialog.setSize(500, 400);
-        paymentDialog.setLocationRelativeTo(this);
-        paymentDialog.setLayout(new BorderLayout());
-
-        // Header
-        JPanel headerPanel = new JPanel();
-        headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        
-        JLabel headerLabel = new JLabel("Payment Information - " + channelName);
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        headerPanel.add(headerLabel);
-        
-        paymentDialog.add(headerPanel, BorderLayout.NORTH);
-
-        // Main content panel
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        contentPanel.setBackground(Color.WHITE);
-
-        // Card Number
-        JPanel cardNumberPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        cardNumberPanel.setBackground(Color.WHITE);
-        JLabel cardNumberLabel = new JLabel("Card Number (16 digits):");
-        cardNumberLabel.setPreferredSize(new Dimension(150, 25));
-        cardNumberPanel.add(cardNumberLabel);
-        
-        JTextField cardNumberField = new JTextField();
-        cardNumberField.setPreferredSize(new Dimension(200, 25));
-        cardNumberField.setDocument(new CardNumberDocument()); // Custom document for formatting
-        cardNumberPanel.add(cardNumberField);
-        contentPanel.add(cardNumberPanel);
-        contentPanel.add(Box.createVerticalStrut(15));
-
-        // CVV
-        JPanel cvvPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        cvvPanel.setBackground(Color.WHITE);
-        JLabel cvvLabel = new JLabel("CVV (3 digits):");
-        cvvLabel.setPreferredSize(new Dimension(150, 25));
-        cvvPanel.add(cvvLabel);
-        
-        JTextField cvvField = new JTextField();
-        cvvField.setPreferredSize(new Dimension(100, 25));
-        cvvField.setDocument(new CVVDocument()); // Custom document for 3 digits only
-        cvvPanel.add(cvvField);
-        contentPanel.add(cvvPanel);
-        contentPanel.add(Box.createVerticalStrut(15));
-
-        // Expiration Date
-        JPanel expDatePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        expDatePanel.setBackground(Color.WHITE);
-        JLabel expDateLabel = new JLabel("Expiration Date (MM/YY):");
-        expDateLabel.setPreferredSize(new Dimension(150, 25));
-        expDatePanel.add(expDateLabel);
-        
-        JTextField expDateField = new JTextField();
-        expDateField.setPreferredSize(new Dimension(100, 25));
-        expDateField.setDocument(new ExpirationDateDocument()); // Custom document for MM/YY format
-        expDatePanel.add(expDateField);
-        contentPanel.add(expDatePanel);
-        contentPanel.add(Box.createVerticalStrut(15));
-
-        // Card Holder Name
-        JPanel namePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        namePanel.setBackground(Color.WHITE);
-        JLabel nameLabel = new JLabel("Card Holder Name:");
-        nameLabel.setPreferredSize(new Dimension(150, 25));
-        namePanel.add(nameLabel);
-        
-        JTextField nameField = new JTextField();
-        nameField.setPreferredSize(new Dimension(200, 25));
-        namePanel.add(nameField);
-        contentPanel.add(namePanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Amount to Pay
-        JPanel amountPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        amountPanel.setBackground(Color.WHITE);
-        JLabel amountLabel = new JLabel("Amount to Pay:");
-        amountLabel.setPreferredSize(new Dimension(150, 25));
-        amountPanel.add(amountLabel);
-        
-        JTextField amountField = new JTextField();
-        amountField.setPreferredSize(new Dimension(150, 25));
-        amountPanel.add(amountField);
-        contentPanel.add(amountPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Buttons panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-        buttonPanel.setBackground(Color.WHITE);
-        
-        JButton submitButton = new JButton("Submit Payment");
-        submitButton.setBackground(new Color(0, 150, 0));
-        submitButton.setForeground(Color.WHITE);
-        submitButton.setFont(new Font("Arial", Font.BOLD, 12));
-        submitButton.setPreferredSize(new Dimension(120, 35));
-        submitButton.addActionListener(e -> {
-            if (processPayment(cardNumberField.getText(), cvvField.getText(), 
-                             expDateField.getText(), nameField.getText(), 
-                             amountField.getText(), channelName)) {
-                paymentDialog.dispose();
-            }
-        });
-        
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.setBackground(new Color(200, 0, 0));
-        cancelButton.setForeground(Color.WHITE);
-        cancelButton.setFont(new Font("Arial", Font.BOLD, 12));
-        cancelButton.setPreferredSize(new Dimension(80, 35));
-        cancelButton.addActionListener(e -> paymentDialog.dispose());
-        
-        buttonPanel.add(submitButton);
-        buttonPanel.add(cancelButton);
-        contentPanel.add(buttonPanel);
-
-        paymentDialog.add(contentPanel, BorderLayout.CENTER);
-        paymentDialog.setVisible(true);
-    }
-
-    /**
-     * Processes the payment and updates the balance
-     */
-    private boolean processPayment(String cardNumber, String cvv, String expDate, 
-                                 String cardHolderName, String amountStr, String channelName) {
-        // Validate inputs
-        if (cardNumber.replaceAll("\\s", "").length() != 16) {
-            JOptionPane.showMessageDialog(this, "Card number must be 16 digits", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-        if (cvv.length() != 3) {
-            JOptionPane.showMessageDialog(this, "CVV must be 3 digits", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-        if (!expDate.matches("\\d{2}/\\d{2}")) {
-            JOptionPane.showMessageDialog(this, "Expiration date must be in MM/YY format", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-        
-        // Validate expiration date
-        try {
-            String[] expParts = expDate.split("/");
-            int month = Integer.parseInt(expParts[0]);
-            int year = Integer.parseInt(expParts[1]) + 2000;
-            
-            if (month < 1 || month > 12) {
-                JOptionPane.showMessageDialog(this, "Invalid month in expiration date", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                return false;
-            }
-            
-            // Check if card is expired
-            java.time.YearMonth expiration = java.time.YearMonth.of(year, month);
-            java.time.YearMonth current = java.time.YearMonth.now();
-            if (expiration.isBefore(current)) {
-                JOptionPane.showMessageDialog(this, "Card has expired", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                return false;
-            }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Invalid expiration date format", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-        
-        if (cardHolderName.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Card holder name is required", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-        
-        double amount;
-        try {
-            amount = Double.parseDouble(amountStr.replaceAll(",", ""));
-            if (amount <= 0) {
-                JOptionPane.showMessageDialog(this, "Amount must be greater than 0", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                return false;
-            }
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Invalid amount format", "Invalid Input", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-
-        // Generate reference number
-        String reference = generatePaymentReference(channelName);
-        
-        // Process payment using AccountStatementManager
-        AccountStatement.PaymentResult result = AccountStatementManager.processPayment(
-            studentID, amount, channelName, reference
-        );
-        
-        if (result.success) {
-            // Update the account statement reference
-            accountStatement = AccountStatementManager.getStatement(studentID);
-            
-            // Add payment to table
-            addPaymentToTable(result.transaction);
-            
-            // Show detailed success message
-            StringBuilder message = new StringBuilder();
-            message.append("Payment Processed Successfully!\n\n");
-            message.append("Transaction Details:\n");
-            message.append("==================\n");
-            message.append("Channel: ").append(channelName).append("\n");
-            message.append("Reference: ").append(reference).append("\n");
-            message.append("Amount Paid: P ").append(String.format("%,.2f", amount)).append("\n\n");
-            
-            message.append("Account Status:\n");
-            message.append("==================\n");
-            message.append("Total Balance: P ").append(String.format("%,.2f", result.newBalance)).append("\n");
-            
-            if (result.newOverpayment > 0) {
-                message.append("Credit Balance: P ").append(String.format("%,.2f", result.newOverpayment)).append("\n");
-            }
-            
-            message.append("\nExam Payment Status:\n");
-            message.append("==================\n");
-            
-            // Show payment processing status
-            if (result.transaction.getStatus().isInProgress()) {
-                message.append("Payment Status: ").append(result.transaction.getStatus().getDisplayName()).append("\n");
-                if (result.transaction.getPaymentType().equals("ONSITE")) {
-                    message.append("Note: Onsite payment requires cashier posting\n");
+                double amount = Double.parseDouble(amountStr);
+                if (amount > 0) {
+                    processPayment(amount, paymentMethod);
                 } else {
-                    message.append("Note: Online payment is being processed\n");
+                    JOptionPane.showMessageDialog(this, "Please enter a valid amount.", "Invalid Amount", JOptionPane.ERROR_MESSAGE);
                 }
-                message.append("\n");
-            }
-            
-            message.append("Prelim: ").append(accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.PRELIM) <= 0 ? "✓ ELIGIBLE" : "✗ NOT ELIGIBLE").append("\n");
-            message.append("Midterm: ").append(accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.MIDTERM) <= 0 ? "✓ ELIGIBLE" : "✗ NOT ELIGIBLE").append("\n");
-            message.append("Finals: ").append(accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.FINALS) <= 0 ? "✓ ELIGIBLE" : "✗ NOT ELIGIBLE").append("\n");
-            
-            JOptionPane.showMessageDialog(this, message.toString(), "Payment Successful", JOptionPane.INFORMATION_MESSAGE);
-            
-            // Refresh the display
-            refreshStatementOfAccounts();
-            
-            return true;
-        } else {
-            JOptionPane.showMessageDialog(this, result.message, "Payment Failed", JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-    }
-    
-    /**
-     * Generates a unique payment reference number
-     */
-    private String generatePaymentReference(String channelName) {
-        java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyyMMdd");
-        String date = dateFormat.format(new java.util.Date());
-        String channelCode = channelName.substring(0, Math.min(3, channelName.length())).toUpperCase();
-        int random = (int)(Math.random() * 10000);
-        return String.format("%s-%s-%04d", date, channelCode, random);
-    }
-
-    /**
-     * Loads payment transactions using DataManager
-     */
-    private Object[][] loadPaymentTransactions() {
-        java.util.List<PaymentTransaction> transactions = DataManager.loadPaymentTransactions(studentID);
-        
-        if (transactions.isEmpty()) {
-            return new Object[0][4];
-        }
-        
-        // Convert to 2D array
-        Object[][] result = new Object[transactions.size()][4];
-        for (int i = 0; i < transactions.size(); i++) {
-            result[i] = transactions.get(i).toTableRow();
-        }
-        
-        return result;
-    }
-
-    /**
-     * Logs payment transaction using DataManager
-     */
-    private void logPaymentTransaction(String channelName, double amount) {
-        DataManager.logPaymentTransaction(channelName, amount, studentID);
-    }
-
-    /**
-     * Adds a new payment transaction to the table
-     */
-    private void addPaymentToTable(PaymentTransaction transaction) {
-        if (paymentTableModel != null) {
-            // Add new row to table
-            paymentTableModel.addRow(transaction.toTableRow());
-        }
-    }
-
-    /**
-     * Refreshes the Statement of Accounts display with updated balance
-     */
-    private void refreshStatementOfAccounts() {
-        // Reload account statement
-        accountStatement = AccountStatementManager.getStatement(studentID);
-        
-        // Update the balance label
-        if (amountDueValueLabel != null) {
-            amountDueValueLabel.setText("P " + String.format("%,.2f", accountStatement.getBalance()));
-            amountDueValueLabel.setForeground(accountStatement.getBalance() > 0 ? 
-                new Color(200, 0, 0) : new Color(0, 150, 0));
-        }
-        
-        // Update the overpayment label if it exists
-        if (overpaymentValueLabel != null && accountStatement.getOverpayment() > 0) {
-            overpaymentValueLabel.setText("P " + String.format("%,.2f", accountStatement.getOverpayment()));
-        }
-        
-        // Update exam status labels
-        accountStatement.updatePaymentStatuses();
-        
-        if (prelimStatusLabel != null) {
-            String prelimStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.PRELIM);
-            Color prelimStatusColor = accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.PRELIM) <= 0 ? 
-                new Color(0, 150, 0) : new Color(200, 0, 0);
-            
-            // Check for processing payments
-            boolean hasProcessing = accountStatement.getPaymentHistory().stream()
-                .anyMatch(p -> p.getStatus() != null && p.getStatus().isInProgress());
-            if (hasProcessing) {
-                prelimStatusColor = new Color(255, 140, 0); // Orange for processing
-            }
-            
-            prelimStatusLabel.setText(prelimStatusText);
-            prelimStatusLabel.setForeground(prelimStatusColor);
-        }
-        
-        if (midtermStatusLabel != null) {
-            String midtermStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.MIDTERM);
-            Color midtermStatusColor = accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.MIDTERM) <= 0 ? 
-                new Color(0, 150, 0) : new Color(200, 0, 0);
-            
-            // Check for processing payments
-            boolean hasProcessing = accountStatement.getPaymentHistory().stream()
-                .anyMatch(p -> p.getStatus() != null && p.getStatus().isInProgress());
-            if (hasProcessing) {
-                midtermStatusColor = new Color(255, 140, 0); // Orange for processing
-            }
-            
-            midtermStatusLabel.setText(midtermStatusText);
-            midtermStatusLabel.setForeground(midtermStatusColor);
-        }
-        
-        if (finalsStatusLabel != null) {
-            String finalsStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.FINALS);
-            Color finalsStatusColor = accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.FINALS) <= 0 ? 
-                new Color(0, 150, 0) : new Color(200, 0, 0);
-            
-            // Check for processing payments
-            boolean hasProcessing = accountStatement.getPaymentHistory().stream()
-                .anyMatch(p -> p.getStatus() != null && p.getStatus().isInProgress());
-            if (hasProcessing) {
-                finalsStatusColor = new Color(255, 140, 0); // Orange for processing
-            }
-            
-            finalsStatusLabel.setText(finalsStatusText);
-            finalsStatusLabel.setForeground(finalsStatusColor);
-        }
-        
-        // Update fee breakdown table if needed
-        if (feeBreakdownTableModel != null) {
-            updateFeeBreakdownTable();
-        }
-        
-        // Update payment history table
-        if (paymentTableModel != null) {
-            updatePaymentHistoryTable();
-        }
-    }
-    
-    /**
-     * Updates the fee breakdown table with current data
-     */
-    private void updateFeeBreakdownTable() {
-        // Clear existing rows
-        while (feeBreakdownTableModel.getRowCount() > 0) {
-            feeBreakdownTableModel.removeRow(0);
-        }
-        
-        // Add header row
-        feeBreakdownTableModel.addRow(new Object[]{"", "ASSESSMENT DETAILS", ""});
-        
-        // Add fee items
-        for (FeeBreakdown fee : accountStatement.getFeeBreakdowns()) {
-            feeBreakdownTableModel.addRow(fee.toTableRow());
-        }
-        
-        // Add total row
-        feeBreakdownTableModel.addRow(new Object[]{
-            "", "TOTAL ASSESSMENT", 
-            String.format("P %,.2f", accountStatement.getTotalAmount())
-        });
-        
-        // Add balance row
-        feeBreakdownTableModel.addRow(new Object[]{
-            "", "CURRENT BALANCE", 
-            String.format("P %,.2f", accountStatement.getBalance())
-        });
-    }
-    
-    /**
-     * Updates the payment history table with current data
-     */
-    private void updatePaymentHistoryTable() {
-        // Clear existing rows
-        while (paymentTableModel.getRowCount() > 0) {
-            paymentTableModel.removeRow(0);
-        }
-        
-        // Add payment history
-        for (PaymentTransaction payment : accountStatement.getPaymentHistory()) {
-            paymentTableModel.addRow(payment.toTableRow());
-        }
-    }
-
-    // Custom Document classes for input formatting
-    private static class CardNumberDocument extends javax.swing.text.PlainDocument {
-        @Override
-        public void insertString(int offs, String str, javax.swing.text.AttributeSet a) throws javax.swing.text.BadLocationException {
-            if (str == null) return;
-            
-            String currentText = getText(0, getLength());
-            String newText = currentText.substring(0, offs) + str + currentText.substring(offs);
-            newText = newText.replaceAll("\\D", ""); // Remove non-digits
-            
-            if (newText.length() <= 16) {
-                // Format with spaces every 4 digits
-                StringBuilder formatted = new StringBuilder();
-                for (int i = 0; i < newText.length(); i++) {
-                    if (i > 0 && i % 4 == 0) {
-                        formatted.append(" ");
-                    }
-                    formatted.append(newText.charAt(i));
-                }
-                super.remove(0, getLength());
-                super.insertString(0, formatted.toString(), a);
-            }
-        }
-    }
-
-    private static class CVVDocument extends javax.swing.text.PlainDocument {
-        @Override
-        public void insertString(int offs, String str, javax.swing.text.AttributeSet a) throws javax.swing.text.BadLocationException {
-            if (str == null) return;
-            
-            String currentText = getText(0, getLength());
-            String newText = currentText.substring(0, offs) + str + currentText.substring(offs);
-            newText = newText.replaceAll("\\D", ""); // Remove non-digits
-            
-            if (newText.length() <= 3) {
-                super.remove(0, getLength());
-                super.insertString(0, newText, a);
-            }
-        }
-    }
-
-    private static class ExpirationDateDocument extends javax.swing.text.PlainDocument {
-        @Override
-        public void insertString(int offs, String str, javax.swing.text.AttributeSet a) throws javax.swing.text.BadLocationException {
-            if (str == null) return;
-            
-            String currentText = getText(0, getLength());
-            String newText = currentText.substring(0, offs) + str + currentText.substring(offs);
-            newText = newText.replaceAll("\\D", ""); // Remove non-digits
-            
-            if (newText.length() <= 4) {
-                // Format as MM/YY
-                StringBuilder formatted = new StringBuilder();
-                for (int i = 0; i < newText.length(); i++) {
-                    if (i == 2) {
-                        formatted.append("/");
-                    }
-                    formatted.append(newText.charAt(i));
-                }
-                super.remove(0, getLength());
-                super.insertString(0, formatted.toString(), a);
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid amount.", "Invalid Amount", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
     /**
-     * Creates the About iSLU panel with downloadables and overview sections
+     * Processes payment
      */
-    private JPanel createAboutISLUPanel(MySinglyLinkedList<String> subItems) {
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(new Color(240, 240, 240));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Create scroll pane for the content
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(Color.WHITE);
-
-        // Add Downloadables section
-        JPanel downloadablesPanel = createDownloadablesSection(subItems);
-        contentPanel.add(downloadablesPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Add About iSLU section
-        JPanel aboutPanel = createAboutISLUSection(subItems);
-        contentPanel.add(aboutPanel);
-
-        JScrollPane scrollPane = new JScrollPane(contentPanel);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setBorder(null);
-
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
-        return mainPanel;
-    }
-
-    /**
-     * Creates the downloadables section with all categories
-     */
-    private JPanel createDownloadablesSection(MySinglyLinkedList<String> subItems) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(0, 0, 0, 0)
-        ));
-
-        // Header
-        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        headerPanel.setBackground(new Color(52, 73, 94));
-        headerPanel.setPreferredSize(new Dimension(0, 50));
+    private void processPayment(double amount, String paymentMethod) {
+        String prefix = "PAY";
+        if (paymentMethod.contains("DragonPay")) prefix = "DP";
+        else if (paymentMethod.contains("UPay")) prefix = "UP";
+        else if (paymentMethod.contains("BPI")) prefix = "BPI";
+        else if (paymentMethod.contains("BDO")) prefix = "BDO";
+        else if (paymentMethod.contains("Bukas")) prefix = "BKS";
         
-        JLabel headerIcon = new JLabel("📁");
-        headerIcon.setForeground(Color.WHITE);
-        headerIcon.setFont(new Font("Arial", Font.PLAIN, 20));
-        headerPanel.add(headerIcon);
+        String reference = prefix + System.currentTimeMillis();
         
-        JLabel headerLabel = new JLabel("Downloadables");
-        headerLabel.setForeground(new Color(255, 204, 102));
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        headerPanel.add(headerLabel);
+        AccountStatement.PaymentResult result = AccountStatementManager.processPayment(
+            studentID, amount, paymentMethod, reference);
         
-        panel.add(headerPanel, BorderLayout.NORTH);
-
-        // Content with downloadable items
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        contentPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        // Add all downloadable categories
-        addDownloadableCategory(contentPanel, "General", createGeneralDownloadables());
-        addDownloadableCategory(contentPanel, "Center for Counseling and Wellness", createCounselingDownloadables());
-        addDownloadableCategory(contentPanel, "Other Student Services", createOtherServicesDownloadables());
-        addDownloadableCategory(contentPanel, "SAMCIS", createSAMCISDownloadables());
-        addDownloadableCategory(contentPanel, "SAS", createSASDownloadables());
-        addDownloadableCategory(contentPanel, "SEA", createSEADownloadables());
-        addDownloadableCategory(contentPanel, "SONAHBS", createSONAHBSDownloadables());
-        addDownloadableCategory(contentPanel, "SOL", createSOLDownloadables());
-        addDownloadableCategory(contentPanel, "SOM", createSOMDownloadables());
-        addDownloadableCategory(contentPanel, "STELA", createSTELADownloadables());
-        addDownloadableCategory(contentPanel, "Student Services Orientation", createStudentServicesDownloadables());
-
-        panel.add(contentPanel, BorderLayout.CENTER);
-        return panel;
-    }
-
-    /**
-     * Creates the About iSLU section
-     */
-    private JPanel createAboutISLUSection(MySinglyLinkedList<String> subItems) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(0, 0, 0, 0)
-        ));
-
-        // Header
-        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        headerPanel.setBackground(new Color(52, 73, 94));
-        headerPanel.setPreferredSize(new Dimension(0, 50));
-        
-        JLabel headerIcon = new JLabel("ℹ️");
-        headerIcon.setForeground(Color.WHITE);
-        headerIcon.setFont(new Font("Arial", Font.PLAIN, 20));
-        headerPanel.add(headerIcon);
-        
-        JLabel headerLabel = new JLabel("About iSLU");
-        headerLabel.setForeground(new Color(255, 204, 102));
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        headerPanel.add(headerLabel);
-        
-        panel.add(headerPanel, BorderLayout.NORTH);
-
-        // Content
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // OVERVIEW section
-        JLabel overviewTitle = new JLabel("OVERVIEW");
-        overviewTitle.setFont(new Font("Arial", Font.BOLD, 18));
-        overviewTitle.setForeground(Color.BLACK);
-        overviewTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        contentPanel.add(overviewTitle);
-        contentPanel.add(Box.createVerticalStrut(15));
-
-        // ABOUT ISLU PORTAL section
-        JLabel aboutPortalTitle = new JLabel("ABOUT ISLU PORTAL");
-        aboutPortalTitle.setFont(new Font("Arial", Font.BOLD, 14));
-        aboutPortalTitle.setForeground(Color.BLACK);
-        aboutPortalTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        contentPanel.add(aboutPortalTitle);
-        contentPanel.add(Box.createVerticalStrut(8));
-
-        JTextArea aboutPortalText = new JTextArea();
-        aboutPortalText.setText("iSLU Portal is for Saint Louis University students and parents, that serves as a personal assistant in carrying out university-related tasks.\n\n" +
-                               "Students can view their personal details, schedules, current grades, accountabilities, curriculum checklist and more. Parents can also view these modules of their " +
-                               "children as long they register.");
-        aboutPortalText.setFont(new Font("Arial", Font.PLAIN, 12));
-        aboutPortalText.setLineWrap(true);
-        aboutPortalText.setWrapStyleWord(true);
-        aboutPortalText.setEditable(false);
-        aboutPortalText.setBackground(Color.WHITE);
-        aboutPortalText.setBorder(null);
-        aboutPortalText.setAlignmentX(Component.LEFT_ALIGNMENT);
-        contentPanel.add(aboutPortalText);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // FEATURES AVAILABLE section
-        JLabel featuresTitle = new JLabel("FEATURES AVAILABLE");
-        featuresTitle.setFont(new Font("Arial", Font.BOLD, 14));
-        featuresTitle.setForeground(Color.BLACK);
-        featuresTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        contentPanel.add(featuresTitle);
-        contentPanel.add(Box.createVerticalStrut(8));
-
-        String[] features = {
-            "Personal Details: where a student can view his/her personal information.",
-            "Class Schedule: where a student can view his/her enrolled subjects of the current term.",
-            "Class Attendance: displays the absences of the student of the current term.",
-            "Current Grades: shows the Prelim, Mid-term and Tentative final grades of a student.",
-            "Transcript of Records: shows the final grades in the previous term of a student.",
-            "Statements of Accounts: shows if a student still has account balance from the accounting office.",
-            "Curriculum Checklist: shows the student's checklist of a curriculum chosen.",
-            "School Calendar: where a student can view the school events and no classes within an academic year."
-        };
-
-        for (String feature : features) {
-            JTextArea featureText = new JTextArea(feature);
-            featureText.setFont(new Font("Arial", Font.PLAIN, 12));
-            featureText.setLineWrap(true);
-            featureText.setWrapStyleWord(true);
-            featureText.setEditable(false);
-            featureText.setBackground(Color.WHITE);
-            featureText.setBorder(null);
-            featureText.setAlignmentX(Component.LEFT_ALIGNMENT);
-            contentPanel.add(featureText);
-            contentPanel.add(Box.createVerticalStrut(5));
-        }
-        contentPanel.add(Box.createVerticalStrut(15));
-
-        // HOW TO REGISTER section
-        JLabel registerTitle = new JLabel("HOW TO REGISTER? Or FORGOT USER ID Number and PASSWORD!");
-        registerTitle.setFont(new Font("Arial", Font.BOLD, 14));
-        registerTitle.setForeground(Color.BLACK);
-        registerTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        contentPanel.add(registerTitle);
-        contentPanel.add(Box.createVerticalStrut(8));
-
-        JTextArea studentsText = new JTextArea();
-        studentsText.setText("STUDENTS: proceed to IT CENTER SOFTWARE DEVELOPMENT (MIS), 2nd floor, Burgos Administrative Center, Saint Louis University.");
-        studentsText.setFont(new Font("Arial", Font.PLAIN, 12));
-        studentsText.setLineWrap(true);
-        studentsText.setWrapStyleWord(true);
-        studentsText.setEditable(false);
-        studentsText.setBackground(Color.WHITE);
-        studentsText.setBorder(null);
-        studentsText.setAlignmentX(Component.LEFT_ALIGNMENT);
-        contentPanel.add(studentsText);
-        contentPanel.add(Box.createVerticalStrut(8));
-
-        JTextArea parentsText = new JTextArea();
-        parentsText.setText("PARENTS/GUARDIANS: register at Registrar's office, Diego Silang building, Saint Louis University.");
-        parentsText.setFont(new Font("Arial", Font.PLAIN, 12));
-        parentsText.setLineWrap(true);
-        parentsText.setWrapStyleWord(true);
-        parentsText.setEditable(false);
-        parentsText.setBackground(Color.WHITE);
-        parentsText.setBorder(null);
-        parentsText.setAlignmentX(Component.LEFT_ALIGNMENT);
-        contentPanel.add(parentsText);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Copyright footer
-        JLabel copyrightLabel = new JLabel("Copyright © 2025 Saint Louis University Inc. All rights reserved.");
-        copyrightLabel.setFont(new Font("Arial", Font.PLAIN, 11));
-        copyrightLabel.setForeground(Color.GRAY);
-        copyrightLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        contentPanel.add(copyrightLabel);
-
-        panel.add(contentPanel, BorderLayout.CENTER);
-        return panel;
-    }
-
-    /**
-     * Helper method to add downloadable categories
-     */
-    private void addDownloadableCategory(JPanel parent, String categoryName, String[] items) {
-        // Category header
-        JLabel categoryLabel = new JLabel("• " + categoryName);
-        categoryLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        categoryLabel.setForeground(Color.BLACK);
-        categoryLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));
-        categoryLabel.setHorizontalAlignment(SwingConstants.LEFT);
-        categoryLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, categoryLabel.getPreferredSize().height));
-        categoryLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        parent.add(categoryLabel);
-
-        // Category items
-        for (String item : items) {
-            JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 2));
-            itemPanel.setBackground(Color.WHITE);
-            itemPanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
-            itemPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
-            itemPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-            // Parse item data (format: "Display Name|PDF Filename")
-            String[] itemData = item.split("\\|");
-            String displayName = itemData[0];
-            String pdfFileName = itemData.length > 1 ? itemData[1] : "";
-
-            JLabel itemLabel = new JLabel("○ " + displayName + " ");
-            itemLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-            itemLabel.setForeground(Color.BLACK);
-            itemPanel.add(itemLabel);
-
-            // Always show download link in red initially
-            JLabel downloadLink = new JLabel("[download]");
-            downloadLink.setFont(new Font("Arial", Font.PLAIN, 12));
-            downloadLink.setForeground(Color.RED);
-            downloadLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            
-            final String finalPdfFileName = pdfFileName;
-            final String finalDisplayName = displayName;
-            downloadLink.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    // Check if PDF exists
-                    if (finalPdfFileName == null || finalPdfFileName.isEmpty()) {
-                        // No PDF file specified - show 404 page
-                        show404Page(finalDisplayName);
-                        return;
-                    }
-                    
-                    File pdfFile = new File(finalPdfFileName);
-                    if (!pdfFile.exists()) {
-                        // PDF file doesn't exist - show 404 page
-                        show404Page(finalDisplayName);
-                        return;
-                    }
-                    
-                    // PDF exists - download it
-                    downloadPDF(pdfFile, finalDisplayName);
-                }
-            });
-            itemPanel.add(downloadLink);
-
-            parent.add(itemPanel);
-        }
-        parent.add(Box.createVerticalStrut(10));
-    }
-
-    /**
-     * Shows 404 error page when PDF is not found
-     */
-    private void show404Page(String displayName) {
-        // Create custom 404 dialog
-        JDialog dialog404 = new JDialog(this, "404 - Not Found", true);
-        dialog404.setSize(600, 400);
-        dialog404.setLocationRelativeTo(this);
-        dialog404.setResizable(false);
-        
-        // Main panel with light gray background
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBackground(new Color(240, 240, 240));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
-        
-        // Large 404 text
-        JLabel label404 = new JLabel("404");
-        label404.setFont(new Font("Arial", Font.BOLD, 72));
-        label404.setForeground(new Color(52, 73, 94));
-        label404.setAlignmentX(Component.CENTER_ALIGNMENT);
-        mainPanel.add(label404);
-        
-        mainPanel.add(Box.createVerticalStrut(30));
-        
-        // Error message
-        JLabel messageLabel = new JLabel("<html><center>The page you are looking for was moved, removed, renamed,<br>or might never existed.</center></html>");
-        messageLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        messageLabel.setForeground(Color.DARK_GRAY);
-        messageLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        mainPanel.add(messageLabel);
-        
-        mainPanel.add(Box.createVerticalStrut(20));
-        
-        // File info
-        JLabel fileLabel = new JLabel("<html><center>Requested file: <b>" + displayName + "</b></center></html>");
-        fileLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        fileLabel.setForeground(Color.GRAY);
-        fileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        mainPanel.add(fileLabel);
-        
-        mainPanel.add(Box.createVerticalStrut(30));
-        
-        // Click here to go back home link
-        JLabel backLink = new JLabel("<html><center><u>click here to go back home</u></center></html>");
-        backLink.setFont(new Font("Arial", Font.PLAIN, 12));
-        backLink.setForeground(Color.BLUE);
-        backLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        backLink.setAlignmentX(Component.CENTER_ALIGNMENT);
-        backLink.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                dialog404.dispose();
-            }
-        });
-        mainPanel.add(backLink);
-        
-        dialog404.add(mainPanel);
-        dialog404.setVisible(true);
-    }
-    
-    /**
-     * Downloads PDF file to user's Downloads folder
-     */
-    private void downloadPDF(File sourceFile, String displayName) {
-        try {
-            // Get user's Downloads folder
-            String userHome = System.getProperty("user.home");
-            File downloadsFolder = new File(userHome, "Downloads");
-            
-            // Create Downloads folder if it doesn't exist
-            if (!downloadsFolder.exists()) {
-                downloadsFolder.mkdirs();
-            }
-            
-            // Create destination file
-            File destFile = new File(downloadsFolder, sourceFile.getName());
-            
-            // Copy file to Downloads folder
-            java.nio.file.Files.copy(
-                sourceFile.toPath(),
-                destFile.toPath(),
-                java.nio.file.StandardCopyOption.REPLACE_EXISTING
-            );
-            
-            // Show success message
-            JOptionPane.showMessageDialog(null, 
-                "Successfully downloaded: " + displayName + "\nSaved to: " + destFile.getAbsolutePath(),
-                "Download Complete", 
+        if (result.success) {
+            JOptionPane.showMessageDialog(this, 
+                result.message + "\nReference: " + reference, 
+                "Payment Successful", 
                 JOptionPane.INFORMATION_MESSAGE);
-                
-            // Try to open the Downloads folder (optional)
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().open(downloadsFolder);
-            }
             
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(null, 
-                "Error downloading file: " + ex.getMessage(),
-                "Download Error", 
+            refreshStatementOfAccounts();
+        } else {
+            JOptionPane.showMessageDialog(this, 
+                result.message, 
+                "Payment Failed", 
                 JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // Helper methods to create downloadable items for each category
-    private String[] createGeneralDownloadables() {
-        return new String[]{
-            "Student Handbook|Student Handbook.pdf",
-            "Safety Orientation Manual|Safety Orientation Manual.pdf",
-            "Ordinance 021-2018 - Harassment|",  // No PDF file
-            "GGuide for Education|GSuite for Education.pdf",
-            "The Mission and Identity Cluster|The Mission and Identity Cluster.pdf",
-            "Official List of Student Organizations|Official List of Student Organizations.pdf",
-            "UNIVERSITY LIBRARIES|UNIVERSITY LIBRARIES.pdf",
-            "OSA Student Services Orientation|OSA Student Services Orientation.pdf",
-            "KASAMA SSC Orientation|KASAMA SSC Orientation.pdf",
-            "Feeling at Home in SLU|",  // No PDF file
-            "Health and Safety Protocols re COVID 19 Prevention and Control|Health and Safety Protocols re COVID 19 Prevention and Control.pdf",
-            "Policies and Guidelines on Student Behavior during Online Correspondence Based Learning|Policies and Guidelines on Student Behavior during Online Correspondence Based Learning.pdf",
-            "SLU Policy on COVID-19 Prevention and Control Measures in the Workplace|SLU Policy on COVID-19 Prevention and Control Measures in the Workplace.pdf",
-            "SLU Privacy Policy|SLU Privacy Policy.pdf",
-            "SLU Quality Policy|SLU Quality Policy.pdf",
-            "SLU UNIVERSITY PRAYER|SLU UNIVERSITY PRAYER.pdf",
-            "Special Guidelines for Recognition or Renewal of Recognition 2021 to 2022|Special Guidelines for Recognition or Renewal of Recognition 2021 to 2022.pdf",
-            "Baguio City Anti Discrimination Ordinance|Baguio City Anti Discrimination Ordinance.pdf",
-            "IRR of RA 11313 Safe Spaces Act|IRR of RA 11313 Safe Spaces Act.pdf",
-            "Safe Spaces Act 20190417 RA 11313 R&D|Safe Spaces Act 20190417 RA 11313 RRD.pdf",
-            "Emails of SLU Student Groups|Emails of SLU Student Groups.pdf"
-        };
-    }
-
-    private String[] createCounselingDownloadables() {
-        return new String[]{
-            "Handouts for Parents on their Children's Independent Living in College|",  // No PDF file
-            "Freshie Career Booklet|",  // No PDF file
-            "Referral Guide Poster|",  // No PDF file
-            "SULN Brochure|",  // No PDF file
-            "SULN Form|",  // No PDF file
-            "The Louisian Journal 2023|",  // No PDF file
-            "CCV Referral Form|"  // No PDF file
-        };
-    }
-
-    private String[] createOtherServicesDownloadables() {
-        return new String[]{
-            "MEDICAL CLINIC CONTINUITY PLAN|MEDICAL CLINIC CONTINUITY PLAN.pdf",
-            "Online Schedule of Medical Clinic|Online Schedule of Medical Clinic.pdf",
-            "SLU Residence Halls|SLU Residence Halls.pdf"
-        };
-    }
-
-    private String[] createSAMCISDownloadables() {
-        return new String[]{
-            "SAMCIS Online Helpdesk|SAMCIS Online Helpdesk.pdf",
-            "SAMCIS Program Offerings Overview|SAMCIS Program Offerings Overview.pdf"
-        };
-    }
-
-    private String[] createSASDownloadables() {
-        return new String[]{
-            "SAS HELPDESK|SAS HELPDESK.pdf"
-        };
-    }
-
-    private String[] createSEADownloadables() {
-        return new String[]{
-            "SEA Online Helpdesk|SEA Online Helpdesk.pdf",
-            "SEA Program Offerings Overview|SEA Program Offerings Overview.pdf"
-        };
-    }
-
-    private String[] createSONAHBSDownloadables() {
-        return new String[]{
-            "SONAHBS Online Helpdesk|",  // No PDF file
-            "SNS Program Offerings Overview|SNS Program Offerings Overview.pdf",
-            "SON Program Offering Overview|SON Program Offering Overview.pdf"
-        };
-    }
-
-    private String[] createSOLDownloadables() {
-        return new String[]{
-            "SOL Online Helpdesk|SOL Online Helpdesk.pdf"
-        };
-    }
-
-    private String[] createSOMDownloadables() {
-        return new String[]{
-            "SOM Online Helpdesk|SOM Online Helpdesk.pdf"
-        };
-    }
-
-    private String[] createSTELADownloadables() {
-        return new String[]{
-            "STELA Online Helpdesk|STELA Online Helpdesk.pdf",
-            "STELA Program Offerings Overview|STELA Program Offerings Overview.pdf"
-        };
-    }
-
-    private String[] createStudentServicesDownloadables() {
-        return new String[]{
-            "Guidance Center|",  // No PDF file
-            "Office of Student Affairs|",  // No PDF file
-            "University Registrar's Office|",  // No PDF file
-            "University Libraries|",  // No PDF file
-            "Office of External Relations, Media & Communications and Alumni Affairs|",  // No PDF file
-            "Office of the Vice President for Mission and Identity|",  // No PDF file
-            "Campus Planning, Maintenance, and Security Department|",  // No PDF file
-            "Dental Clinic|",  // No PDF file
-            "Medical Clinic|",  // No PDF file
-            "Technology Management and Development Department|"  // No PDF file
-        };
-    }
-
     /**
-     * Creates the Curriculum Checklist panel matching the UI design from the image
+     * Helper methods for exam period logic
      */
-    private JPanel createCurriculumChecklistPanel(MySinglyLinkedList<String> subItems) {
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(new Color(240, 240, 240));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Content panel
-        JPanel contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(0, 0, 0, 0)
-        ));
-
-        // Header - Curriculum Checklist
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setPreferredSize(new Dimension(0, 80));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+    private String getCurrentExamPeriod() {
+        java.time.LocalDate currentDate = java.time.LocalDate.now();
         
-        // Header content
-        JPanel headerContent = new JPanel();
-        headerContent.setLayout(new BoxLayout(headerContent, BoxLayout.Y_AXIS));
-        headerContent.setBackground(new Color(10, 45, 90));
-        
-        JLabel headerLabel = new JLabel(subItems.toString());
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        headerContent.add(headerLabel);
-        
-        // Note text
-        JLabel noteLabel = new JLabel("NOTE: For inquiries regarding your checklist please proceed to your respective Dean's offices.");
-        noteLabel.setForeground(new Color(255, 204, 102));
-        noteLabel.setFont(new Font("Arial", Font.ITALIC, 12));
-        headerContent.add(Box.createVerticalStrut(5));
-        headerContent.add(noteLabel);
-        
-        headerPanel.add(headerContent, BorderLayout.WEST);
-        contentPanel.add(headerPanel, BorderLayout.NORTH);
-
-        // Create curriculum table
-        String[] columnNames = {"", "Course Number", "Course Description", "Units"};
-        
-        // Generate curriculum data matching the image
-        Object[][] curriculumData = generateCurriculumData();
-        
-        DefaultTableModel curriculumModel = new DefaultTableModel(curriculumData, columnNames) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Make all cells non-editable
-            }
-            
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                if (columnIndex == 0) {
-                    return Boolean.class; // For checkboxes
-                }
-                return String.class;
-            }
-        };
-
-        JTable curriculumTable = new JTable(curriculumModel);
-        curriculumTable.setRowHeight(25);
-        curriculumTable.getTableHeader().setReorderingAllowed(false);
-        curriculumTable.setAutoCreateRowSorter(false);
-        curriculumTable.setShowGrid(true);
-        curriculumTable.setGridColor(new Color(200, 200, 200));
-        curriculumTable.setFont(new Font("Arial", Font.PLAIN, 11));
-        
-        // Set column widths
-        curriculumTable.getColumnModel().getColumn(0).setPreferredWidth(30);  // Checkbox
-        curriculumTable.getColumnModel().getColumn(0).setMaxWidth(30);
-        curriculumTable.getColumnModel().getColumn(1).setPreferredWidth(100); // Course Number
-        curriculumTable.getColumnModel().getColumn(2).setPreferredWidth(500); // Description
-        curriculumTable.getColumnModel().getColumn(3).setPreferredWidth(50);  // Units
-        
-        // Style the table header
-        curriculumTable.getTableHeader().setBackground(new Color(220, 220, 220));
-        curriculumTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
-
-        // Custom renderer for semester headers (bold rows with no checkbox)
-        curriculumTable.getColumnModel().getColumn(0).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
-            private final JCheckBox defaultRenderer = new JCheckBox();
-            @Override
-            public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Object courseNum = table.getValueAt(row, 1);
-
-                if (courseNum == null || courseNum.toString().trim().isEmpty()) {
-                    return null;
-                } else {
-                    defaultRenderer.setSelected(value != null && (Boolean) value);
-                    defaultRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-                    if (row % 2 != 0) {
-                        defaultRenderer.setBackground(Color.WHITE);
-                    } else {
-                        defaultRenderer.setBackground(Color.WHITE);
-                    }
-                    return defaultRenderer;
-                }
-            }
-        });
-
-        JScrollPane scrollPane = new JScrollPane(curriculumTable);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        contentPanel.add(scrollPane, BorderLayout.CENTER);
-
-        mainPanel.add(contentPanel, BorderLayout.CENTER);
-        return mainPanel;
-    }
-
-    /**
-     * Generates curriculum data matching the BSIT curriculum from the image
-     */
-    private Object[][] generateCurriculumData() {
-        java.util.List<Object[]> data = new java.util.ArrayList<>();
-        
-        // First Year, First Semester
-        data.add(new Object[]{null, "", "First Year, First Semester", ""});
-        data.add(new Object[]{true, "CFE 101", "GOD'S JOURNEY WITH HIS PEOPLE", "3"});
-        data.add(new Object[]{true, "FIT HW", "PHYSICAL ACTIVITY TOWARDS HEALTH AND FITNESS (HEALTH AND WELLNESS)", "2"});
-        data.add(new Object[]{true, "GART", "ART APPRECIATION", "3"});
-        data.add(new Object[]{true, "GHIST", "READINGS IN PHILIPPINE HISTORY", "3"});
-        data.add(new Object[]{true, "GSELF", "UNDERSTANDING THE SELF", "3"});
-        data.add(new Object[]{true, "IT 111", "INTRODUCTION TO COMPUTING (LEC)", "2"});
-        data.add(new Object[]{true, "IT 111L", "INTRODUCTION TO COMPUTING (LAB)", "1"});
-        data.add(new Object[]{true, "IT 112", "COMPUTER PROGRAMMING 1 (LEC)", "2"});
-        data.add(new Object[]{true, "IT 112L", "COMPUTER PROGRAMMING 1 (LAB)", "1"});
-        data.add(new Object[]{true, "IT 113", "DISCRETE MATHEMATICS", "3"});
-        
-        // First Year, Second Semester
-        data.add(new Object[]{null, "", "First Year, Second Semester", ""});
-        data.add(new Object[]{true, "CFE 102", "CHRISTIAN MORALITY IN OUR TIMES", "3"});
-        data.add(new Object[]{true, "FIT CS", "PHYSICAL ACTIVITY TOWARDS HEALTH AND FITNESS (COMBATIVE SPORTS)", "2"});
-        data.add(new Object[]{true, "GCWORLD", "THE CONTEMPORARY WORLD", "3"});
-        data.add(new Object[]{true, "GMATH", "MATHEMATICS IN THE MODERN WORLD", "3"});
-        data.add(new Object[]{true, "GPCOM", "PURPOSIVE COMMUNICATION", "3"});
-        data.add(new Object[]{true, "IT 121", "INFORMATION SYSTEM FUNDAMENTALS", "3"});
-        data.add(new Object[]{true, "IT 122", "COMPUTER PROGRAMMING 2", "2"});
-        data.add(new Object[]{true, "IT 122L", "COMPUTER PROGRAMMING 2 (LAB)", "1"});
-        data.add(new Object[]{true, "IT 123", "PLATFORM TECHNOLOGIES", "2"});
-        data.add(new Object[]{true, "IT 123L", "PLATFORM TECHNOLOGIES (LAB)", "1"});
-        
-        // First Year, Short Term
-        data.add(new Object[]{null, "", "First Year, Short Term", ""});
-        data.add(new Object[]{true, "GRIZAL", "THE LIFE AND WORKS OF RIZAL", "3"});
-        data.add(new Object[]{true, "IT 131", "COMPUTER ARCHITECTURE", "2"});
-        data.add(new Object[]{true, "IT 131L", "COMPUTER ARCHITECTURE (LAB)", "1"});
-        
-        // Second Year, First Semester
-        data.add(new Object[]{null, "", "Second Year, First Semester", ""});
-        data.add(new Object[]{false, "CFE 103", "CATHOLIC FOUNDATION OF MISSION", "3"});
-        data.add(new Object[]{false, "FIT OA", "PHYSICAL ACTIVITY TOWARDS HEALTH AND FITNESS (OUTDOOR AND ADVENTURE ACTIVITIES)", "2"});
-        data.add(new Object[]{false, "GENVI", "ENVIRONMENTAL SCIENCE", "3"});
-        data.add(new Object[]{false, "GSTS", "SCIENCE, TECHNOLOGY, AND SOCIETY", "3"});
-        data.add(new Object[]{false, "IT 211", "REQUIREMENTS ANALYSIS AND MODELING", "3"});
-        data.add(new Object[]{false, "IT 212", "DATA STRUCTURES (LEC)", "2"});
-        data.add(new Object[]{false, "IT 212L", "DATA STRUCTURES (LAB)", "1"});
-        data.add(new Object[]{false, "IT 213", "NETWORK FUNDAMENTALS (LEC)", "2"});
-        data.add(new Object[]{false, "IT 213L", "NETWORK FUNDAMENTALS (LAB)", "1"});
-        data.add(new Object[]{false, "NSTP-CWTS 1", "FOUNDATIONS OF SERVICE", "3"});
-        
-        // Second Year, Second Semester
-        data.add(new Object[]{null, "", "Second Year, Second Semester", ""});
-        data.add(new Object[]{false, "CFE 104", "CICM MISSIONARY IDENTITY", "3"});
-        data.add(new Object[]{false, "FIT AQ", "PHYSICAL ACTIVITY TOWARDS HEALTH AND FITNESS (AQUATICS)", "2"});
-        data.add(new Object[]{false, "GENTREP", "THE ENTREPRENEURIAL MIND", "3"});
-        data.add(new Object[]{false, "GRVA", "READING VISUAL ART", "3"});
-        data.add(new Object[]{false, "IT 221", "INFORMATION MANAGEMENT (LEC)", "2"});
-        data.add(new Object[]{false, "IT 221L", "INFORMATION MANAGEMENT (LAB)", "1"});
-        data.add(new Object[]{false, "IT 222", "INTEGRATIVE TECHNOLOGIES (LEC)", "2"});
-        data.add(new Object[]{false, "IT 222L", "INTEGRATIVE TECHNOLOGIES (LAB)", "1"});
-        data.add(new Object[]{false, "IT 223", "HUMAN COMPUTER INTERACTION", "3"});
-        data.add(new Object[]{false, "NSTP-CWTS 2", "SOCIAL AWARENESS AND EMPOWERMENT FOR SERVICE", "3"});
-        
-        // Second Year, Short Term
-        data.add(new Object[]{null, "", "Second Year, Short Term", ""});
-        data.add(new Object[]{false, "CS 314", "SOCIAL AND PERSONAL DEVELOPMENT IN THE ICT WORKPLACE", "3"});
-        data.add(new Object[]{false, "CS 315", "TECHNOLOGY-ASSISTED PRESENTATION AND COMMUNICATION", "3"});
-        data.add(new Object[]{false, "GETHICS", "ETHICS", "3"});
-        
-        // Third Year, First Semester
-        data.add(new Object[]{null, "", "Third Year, First Semester", ""});
-        data.add(new Object[]{false, "CFE 105A", "CICM IN ACTION: JUSTICE, PEACE, INTEGRITY OF CREATION, INDIGENOUS PEOPLES & INTERRELIGIOUS DIALOGUE", "1.5"});
-        data.add(new Object[]{false, "IT 311", "APPLICATIONS DEVELOPMENT (LEC)", "2"});
-        data.add(new Object[]{false, "IT 311L", "APPLICATIONS DEVELOPMENT (LAB)", "1"});
-        data.add(new Object[]{false, "IT 312", "WEB TECHNOLOGIES (LEC)", "2"});
-        data.add(new Object[]{false, "IT 312L", "WEB TECHNOLOGIES (LAB)", "1"});
-        data.add(new Object[]{false, "IT 313", "SOFTWARE ENGINEERING", "3"});
-        data.add(new Object[]{false, "IT 314", "SOCIAL AND PROFESSIONAL ISSUES IN INFORMATION TECHNOLOGY", "3"});
-        data.add(new Object[]{false, "IT 315", "TECHNOPRENEURSHIP", "3"});
-        data.add(new Object[]{false, "ITE 15", "IT SECURITY MANAGEMENT (Elective)", "3"});
-        data.add(new Object[]{false, "ITE 23", "ELECTRONIC COMMERCE (Elective)", "3"});
-        data.add(new Object[]{false, "ITE 30", "INFORMATION TECHNOLOGY CERTIFICATION REVIEW (Elective)", "3"});
-        
-        // Third Year, Second Semester
-        data.add(new Object[]{null, "", "Third Year, Second Semester", ""});
-        data.add(new Object[]{false, "CFE 105B", "CICM IN ACTION: ENVIRONMENTAL PLANNING & MANAGEMENT, AND DISASTER RISK REDUCTION MANAGEMENT", "1.5"});
-        data.add(new Object[]{false, "IT 321", "IT PROJECT 1", "3"});
-        data.add(new Object[]{false, "IT 322", "DATA ANALYTICS (LEC)", "2"});
-        data.add(new Object[]{false, "IT 322L", "DATA ANALYTICS (LAB)", "1"});
-        data.add(new Object[]{false, "IT 323", "SYSTEM ADMINISTRATION AND MAINTENANCE (LEC)", "2"});
-        data.add(new Object[]{false, "IT 323L", "SYSTEM ADMINISTRATION AND MAINTENANCE (LAB)", "1"});
-        data.add(new Object[]{false, "IT 324", "SYSTEM INTEGRATION AND ARCHITECTURE", "3"});
-        data.add(new Object[]{false, "IT 325", "FIELD TRIPS AND SEMINARS", "3"});
-        data.add(new Object[]{false, "ITE 16", "CURRENT TRENDS 1 (Elective)", "3"});
-        data.add(new Object[]{false, "ITE 27", "CURRENT TRENDS 2 (Elective)", "3"});
-        data.add(new Object[]{false, "ITE 29", "SPECIAL TOPICS 2 (Elective)", "3"});
-        
-        // Third Year, Short Term
-        data.add(new Object[]{null, "", "Third Year, Short Term", ""});
-        data.add(new Object[]{false, "IT 331", "INFORMATION ASSURANCE AND SECURITY", "3"});
-        data.add(new Object[]{false, "ITE 17", "DATA MINING (LEC)", "2"});
-        data.add(new Object[]{false, "ITE 17L", "DATA MINING (LAB)", "1"});
-        
-        // Fourth Year, First Semester
-        data.add(new Object[]{null, "", "Fourth Year, First Semester", ""});
-        data.add(new Object[]{false, "CFE 106A", "EMBRACING THE CICM MISSION", "1.5"});
-        data.add(new Object[]{false, "FOR LANG 1", "FOREIGN LANGUAGE 1", "3"});
-        data.add(new Object[]{false, "IT 411", "IT PROJECT 2", "3"});
-        data.add(new Object[]{false, "IT 412", "IT RESOURCE MANAGEMENT", "3"});
-        data.add(new Object[]{false, "ITE 14", "UX CONCEPTS AND DESIGN (Elective)", "3"});
-        data.add(new Object[]{false, "ITE 28", "SPECIAL TOPICS 1 (Elective)", "3"});
-        
-        // Fourth Year, Second Semester
-        data.add(new Object[]{null, "", "Fourth Year, Second Semester", ""});
-        data.add(new Object[]{false, "CFE 106B", "EMBRACING THE CICM MISSION", "1.5"});
-        data.add(new Object[]{false, "IT 421", "PRACTICUM", "9"});
-        
-        return data.toArray(new Object[data.size()][4]);
-    }
-    
-    /**
-     * Validates password requirements
-     * @param password The password to validate
-     * @return null if valid, error message if invalid
-     */
-    private String validatePasswordRequirements(String password) {
-        if (password == null || password.length() < 8) {
-            return "Password must be at least 8 characters long.";
-        }
-        
-        boolean hasUppercase = false;
-        boolean hasLowercase = false;
-        boolean hasDigit = false;
-        boolean hasSpecialChar = false;
-        
-        String specialChars = "!@#$%^&*()_+-=[]{}|;:,.<>?";
-        
-        for (char c : password.toCharArray()) {
-            if (Character.isUpperCase(c)) {
-                hasUppercase = true;
-            } else if (Character.isLowerCase(c)) {
-                hasLowercase = true;
-            } else if (Character.isDigit(c)) {
-                hasDigit = true;
-            } else if (specialChars.contains(String.valueOf(c))) {
-                hasSpecialChar = true;
-            }
-        }
-        
-        if (!hasUppercase) {
-            return "Password must contain at least one uppercase letter.";
-        }
-        if (!hasLowercase) {
-            return "Password must contain at least one lowercase letter.";
-        }
-        if (!hasDigit) {
-            return "Password must contain at least one number.";
-        }
-        if (!hasSpecialChar) {
-            return "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?).";
-        }
-        
-        return null; // Password is valid
-    }
-    
-    /**
-     * Refreshes the UI to reflect current database information
-     */
-    private void refreshUIFromDatabase() {
-        // Refresh personal details if currently shown
-        Component rightComponent = null;
-        JPanel mainContentPanel = (JPanel) contentPanel.getComponent(0);
-        if (mainContentPanel.getComponentCount() > 1) {
-            rightComponent = mainContentPanel.getComponent(1);
-        }
-        
-        // Check which panel is currently active and refresh it
-        if (rightComponent != null) {
-            // Find which button is currently selected by checking their borders
-            Container leftPanel = (Container) mainContentPanel.getComponent(0);
-            for (Component comp : leftPanel.getComponents()) {
-                if (comp instanceof JButton) {
-                    JButton button = (JButton) comp;
-                    if (button.getBorder() instanceof CompoundBorder) {
-                        CompoundBorder border = (CompoundBorder) button.getBorder();
-                        if (border.getOutsideBorder() instanceof LineBorder) {
-                            LineBorder lineBorder = (LineBorder) border.getOutsideBorder();
-                            if (lineBorder.getThickness() == 2) { // Selected button has thick border
-                                String buttonText = button.getText();
-                                switch (buttonText) {
-                                    case "📋 Personal Details":
-                                        // Remove existing right panel and add updated one
-                                        Component centerComponentPD = ((BorderLayout)mainContentPanel.getLayout()).getLayoutComponent(BorderLayout.CENTER);
-                                        if (centerComponentPD != null) {
-                                            mainContentPanel.remove(centerComponentPD);
-                                        }
-                                        Component personalDetailsPanel = showPersonalDetailsInRightPanel();
-                                        mainContentPanel.add(personalDetailsPanel, BorderLayout.CENTER);
-                                        
-                                        // Ensure left panel remains visible
-                                        Component westComponent = ((BorderLayout)mainContentPanel.getLayout()).getLayoutComponent(BorderLayout.WEST);
-                                        if (westComponent != null) {
-                                            westComponent.setVisible(true);
-                                        }
-                                        
-                                        mainContentPanel.revalidate();
-                                        mainContentPanel.repaint();
-                                        break;
-                                    case "🔐 Account Info":
-                                        // Remove existing right panel and add updated one
-                                        Component centerComponentAI = ((BorderLayout)mainContentPanel.getLayout()).getLayoutComponent(BorderLayout.CENTER);
-                                        if (centerComponentAI != null) {
-                                            mainContentPanel.remove(centerComponentAI);
-                                        }
-                                        Component accountInfoPanel = showAccountInfo();
-                                        mainContentPanel.add(accountInfoPanel, BorderLayout.CENTER);
-                                        
-                                        // Ensure left panel remains visible
-                                        Component westComponentAI = ((BorderLayout)mainContentPanel.getLayout()).getLayoutComponent(BorderLayout.WEST);
-                                        if (westComponentAI != null) {
-                                            westComponentAI.setVisible(true);
-                                        }
-                                        
-                                        mainContentPanel.revalidate();
-                                        mainContentPanel.repaint();
-                                        break;
-                                    // Change Password panel doesn't need refresh as it's always empty
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
-     * Starts monitoring the database file for changes
-     */
-    private void startDatabaseMonitoring() {
-        // Get initial database modification time
-        updateDatabaseModificationTime();
-        
-        // Create timer to check for database changes every 5 seconds
-        databaseCheckTimer = new Timer(5000, e -> checkDatabaseChanges());
-        databaseCheckTimer.start();
-    }
-    
-    /**
-     * Stops database monitoring
-     */
-    private void stopDatabaseMonitoring() {
-        if (databaseCheckTimer != null) {
-            databaseCheckTimer.stop();
-            databaseCheckTimer = null;
-        }
-    }
-    
-    /**
-     * Updates the stored database modification time
-     */
-    private void updateDatabaseModificationTime() {
-        try {
-            File dbFile = new File("Database.txt");
-            if (dbFile.exists()) {
-                lastDatabaseModified = dbFile.lastModified();
-            }
-        } catch (Exception e) {
-            System.err.println("Error checking database modification time: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Checks if the database has been modified and refreshes UI if needed
-     */
-    private void checkDatabaseChanges() {
-        try {
-            File dbFile = new File("Database.txt");
-            if (dbFile.exists()) {
-                long currentModified = dbFile.lastModified();
-                if (currentModified > lastDatabaseModified) {
-                    lastDatabaseModified = currentModified;
-                    // Database has been modified, refresh the UI
-                    SwingUtilities.invokeLater(() -> refreshUIFromDatabase());
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error checking database changes: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Parses profile data string from Database.txt into ProfileData object
-     */
-    private ProfileData parseProfileData(String profileData) {
-        ProfileData profile = new ProfileData();
-        
-        if (profileData == null || profileData.trim().isEmpty()) {
-            System.out.println("DEBUG: No profile data found, using defaults");
-            return profile; // Return default values
-        }
-        
-        System.out.println("DEBUG: Parsing profile data: " + profileData);
-        
-        try {
-            String[] pairs = profileData.split(";");
-            System.out.println("DEBUG: Found " + pairs.length + " data pairs");
-            for (String pair : pairs) {
-                if (pair.trim().isEmpty()) continue;
-                
-                String[] keyValue = pair.split("=", 2);
-                if (keyValue.length == 2) {
-                    String key = keyValue[0].trim();
-                    String value = keyValue[1].trim();
-                    System.out.println("DEBUG: Parsing " + key + " = " + value);
-                    
-                    switch (key) {
-                        case "Gender": profile.gender = value; break;
-                        case "Citizenship": profile.citizenship = value; break;
-                        case "Religion": profile.religion = value; break;
-                        case "CivilStatus": profile.civilStatus = value; break;
-                        case "Birthplace": profile.birthplace = value; break;
-                        case "Nationality": profile.nationality = value; break;
-                        case "HomeAddress": profile.homeAddress = value; break;
-                        case "HomeTel": profile.homeTel = value; break;
-                        case "BaguioAddress": profile.baguioAddress = value; break;
-                        case "BaguioTel": profile.baguioTel = value; break;
-                        case "Cellphone": profile.cellphone = value; break;
-                        case "FatherName": profile.fatherName = value; break;
-                        case "FatherOcc": profile.fatherOcc = value; break;
-                        case "MotherName": profile.motherName = value; break;
-                        case "MotherOcc": profile.motherOcc = value; break;
-                        case "GuardianName": profile.guardianName = value; break;
-                        case "GuardianAddress": profile.guardianAddress = value; break;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error parsing profile data: " + e.getMessage());
-        }
-        
-        return profile;
-    }
-
-    /**
-     * Creates the Medical Record panel with sidebar and content areas
-     */
-    // Store current medical record and content panel reference
-    private MedicalRecord currentMedicalRecord;
-    private JPanel medicalContentPanel;
-    private JPanel currentMedicalContentView; // Store current view to preserve state
-    
-    private JPanel createMedicalRecordPanel(MySinglyLinkedList<String> subItems) {
-        // Always reload medical record from database when creating panel
-        currentMedicalRecord = DataManager.getMedicalRecord(studentID);
-        
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(new Color(240, 240, 240));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Main content wrapper
-        JPanel contentWrapper = new JPanel(new BorderLayout());
-        contentWrapper.setBackground(Color.WHITE);
-        contentWrapper.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-
-        // Title Panel
-        JPanel titlePanel = new JPanel(new BorderLayout());
-        titlePanel.setBackground(new Color(13, 37, 73));
-        titlePanel.setPreferredSize(new Dimension(0, 40));
-        
-        JLabel titleLabel = new JLabel("🏥 Medical Record");
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 10));
-        titlePanel.add(titleLabel, BorderLayout.WEST);
-        
-        contentWrapper.add(titlePanel, BorderLayout.NORTH);
-
-        // Create split pane for sidebar and content
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(200);
-        splitPane.setDividerSize(1);
-        splitPane.setBorder(null);
-
-        // Left sidebar with medical categories
-        JPanel sidebarPanel = createMedicalSidebar();
-        splitPane.setLeftComponent(sidebarPanel);
-
-        // Right content area
-        JPanel contentArea = new JPanel(new BorderLayout());
-        contentArea.setBackground(Color.WHITE);
-        
-        // Store reference to content panel for updates
-        medicalContentPanel = new JPanel(new BorderLayout());
-        medicalContentPanel.setBackground(Color.WHITE);
-        medicalContentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Reset current view
-        currentMedicalContentView = null;
-        
-        // Show default content (Personal Information)
-        showMedicalPersonalInfo();
-        
-        contentArea.add(medicalContentPanel, BorderLayout.CENTER);
-        
-        // Update button panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(Color.WHITE);
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        JButton updateButton = new JButton("Update Medical Records");
-        updateButton.setBackground(new Color(13, 37, 73));
-        updateButton.setForeground(Color.WHITE);
-        updateButton.setFont(new Font("Arial", Font.BOLD, 13));
-        updateButton.setPreferredSize(new Dimension(180, 35)); // Larger button
-        updateButton.setFocusPainted(false);
-        updateButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        updateButton.addActionListener(e -> {
-            // Force save medical record to database
-            if (DataManager.saveMedicalRecord(currentMedicalRecord)) {
-                // Reload the data to ensure consistency
-                currentMedicalRecord = DataManager.getMedicalRecord(studentID);
-                JOptionPane.showMessageDialog(this, 
-                    "Medical records updated successfully!", 
-                    "Success", 
-                    JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, 
-                    "Failed to update medical records!", 
-                    "Error", 
-                    JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        
-        buttonPanel.add(updateButton);
-        contentArea.add(buttonPanel, BorderLayout.SOUTH);
-        
-        splitPane.setRightComponent(contentArea);
-        contentWrapper.add(splitPane, BorderLayout.CENTER);
-        
-        mainPanel.add(contentWrapper, BorderLayout.CENTER);
-        return mainPanel;
-    }
-    
-    // Store reference to currently selected button
-    private JButton currentSelectedMedicalButton = null;
-    
-    /**
-     * Creates the medical sidebar with category buttons
-     */
-    private JPanel createMedicalSidebar() {
-        JPanel sidebar = new JPanel();
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setBackground(new Color(245, 245, 245));
-        sidebar.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-        sidebar.setPreferredSize(new Dimension(250, 0)); // Fixed width for consistency
-        
-        // Medical categories
-        String[] categories = {
-            "👤 Personal Info",
-            "📋 Allergies",
-            "🏥 Past Medical History", 
-            "👶 Childhood Diseases",
-            "👩 Gynecologic History",
-            "🧑 Personal/Social History",
-            "💉 Immunization",
-            "📝 Others",
-            "🔍 Consultation Record"
-        };
-        
-        JButton firstButton = null;
-        for (String category : categories) {
-            JButton categoryBtn = createMedicalCategoryButton(category);
-            if (firstButton == null) {
-                firstButton = categoryBtn;
-            }
-            sidebar.add(categoryBtn);
-            sidebar.add(Box.createRigidArea(new Dimension(0, 8))); // Increased spacing for better visual separation
-        }
-        
-        // Select the first button by default
-        if (firstButton != null) {
-            firstButton.setBackground(new Color(220, 240, 255));
-            firstButton.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(70, 130, 180), 2),
-                BorderFactory.createEmptyBorder(8, 15, 8, 15)
-            ));
-            currentSelectedMedicalButton = firstButton;
-        }
-        
-        sidebar.add(Box.createVerticalGlue());
-        return sidebar;
-    }
-    
-    /**
-     * Creates a styled medical category button
-     */
-    private JButton createMedicalCategoryButton(String text) {
-        JButton button = new JButton(text);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40)); // Increased height for better touch target
-        button.setPreferredSize(new Dimension(220, 40)); // Fixed size for consistency
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setBackground(Color.WHITE);
-        button.setForeground(new Color(13, 37, 73));
-        button.setFont(new Font("Arial", Font.PLAIN, 13)); // Slightly larger font
-        button.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(8, 15, 8, 15) // More padding
-        ));
-        button.setFocusPainted(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR)); // Add hand cursor for better UX
-        
-        // Add hover effect
-        button.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                if (button != currentSelectedMedicalButton) {
-                    button.setBackground(new Color(245, 245, 245));
-                    button.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(70, 130, 180)), // Blue border on hover
-                        BorderFactory.createEmptyBorder(8, 15, 8, 15)
-                    ));
-                }
-            }
-            
-            @Override
-            public void mouseExited(MouseEvent e) {
-                if (button != currentSelectedMedicalButton) {
-                    button.setBackground(Color.WHITE);
-                    button.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                        BorderFactory.createEmptyBorder(8, 15, 8, 15)
-                    ));
-                }
-            }
-            
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                // Update button selection
-                if (currentSelectedMedicalButton != null) {
-                    currentSelectedMedicalButton.setBackground(Color.WHITE);
-                    currentSelectedMedicalButton.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                        BorderFactory.createEmptyBorder(8, 15, 8, 15)
-                    ));
-                }
-                button.setBackground(new Color(220, 240, 255)); // Light blue for selected
-                button.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(70, 130, 180), 2), // Thicker blue border for selected
-                    BorderFactory.createEmptyBorder(8, 15, 8, 15)
-                ));
-                currentSelectedMedicalButton = button;
-                
-                // Reload medical record before switching panels to ensure data is current
-                currentMedicalRecord = DataManager.getMedicalRecord(studentID);
-                
-                // Update content panel based on selected category
-                if (text.contains("Personal Info")) {
-                    showMedicalPersonalInfo();
-                } else if (text.contains("Allergies")) {
-                    showMedicalCategoryPanel("Allergies", currentMedicalRecord.getAllergies(), 
-                        newContent -> currentMedicalRecord.setAllergies(newContent));
-                } else if (text.contains("Past Medical History")) {
-                    showMedicalCategoryPanel("Past Medical History", currentMedicalRecord.getPastMedicalHistory(),
-                        newContent -> currentMedicalRecord.setPastMedicalHistory(newContent));
-                } else if (text.contains("Childhood Diseases")) {
-                    showMedicalCategoryPanel("Childhood Diseases", currentMedicalRecord.getChildhoodDiseases(),
-                        newContent -> currentMedicalRecord.setChildhoodDiseases(newContent));
-                } else if (text.contains("Gynecologic History")) {
-                    showMedicalCategoryPanel("Gynecologic History", currentMedicalRecord.getGynecologicHistory(),
-                        newContent -> currentMedicalRecord.setGynecologicHistory(newContent));
-                } else if (text.contains("Personal/Social History")) {
-                    showMedicalCategoryPanel("Personal/Social History", currentMedicalRecord.getPersonalSocialHistory(),
-                        newContent -> currentMedicalRecord.setPersonalSocialHistory(newContent));
-                } else if (text.contains("Immunization")) {
-                    showMedicalCategoryPanel("Immunization", currentMedicalRecord.getImmunization(),
-                        newContent -> currentMedicalRecord.setImmunization(newContent));
-                } else if (text.contains("Others")) {
-                    showMedicalCategoryPanel("Others", currentMedicalRecord.getOthers(),
-                        newContent -> currentMedicalRecord.setOthers(newContent));
-                } else if (text.contains("Consultation Record")) {
-                    showMedicalCategoryPanel("Consultation Record", currentMedicalRecord.getConsultationRecord(),
-                        newContent -> currentMedicalRecord.setConsultationRecord(newContent));
-                } else {
-                    // Default: show personal info
-                    showMedicalPersonalInfo();
-                }
-            }
-        });
-        
-        return button;
-    }
-    
-    /**
-     * Shows medical category panel in the main content area
-     */
-    private void showMedicalCategoryPanel(String category, String currentContent, java.util.function.Consumer<String> updateFunction) {
-        // Save any pending changes before switching
-        if (currentMedicalContentView != null) {
-            DataManager.saveMedicalRecord(currentMedicalRecord);
-        }
-        
-        medicalContentPanel.removeAll();
-        
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        // Title
-        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        titlePanel.setBackground(new Color(245, 245, 245));
-        titlePanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-        
-        JLabel titleLabel = new JLabel(category.toUpperCase());
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        titleLabel.setForeground(new Color(13, 37, 73));
-        titlePanel.add(titleLabel);
-        
-        panel.add(titlePanel, BorderLayout.NORTH);
-        
-        // Create specific panel based on category
-        JPanel contentPanel = null;
-        
-        if (category.contains("Past Medical History")) {
-            contentPanel = createPastMedicalHistoryPanel();
-        } else if (category.contains("Childhood Diseases")) {
-            contentPanel = createChildhoodDiseasesPanel();
-        } else if (category.contains("Gynecologic History")) {
-            contentPanel = createGynecologicHistoryPanel();
-        } else if (category.contains("Personal/Social History")) {
-            contentPanel = createPersonalSocialHistoryPanel();
-        } else if (category.contains("Immunization")) {
-            contentPanel = createImmunizationPanel();
-        } else if (category.contains("Others")) {
-            contentPanel = createOthersPanel();
-        } else if (category.contains("Consultation Record")) {
-            contentPanel = createConsultationRecordPanel();
+        if (currentDate.isBefore(java.time.LocalDate.of(2025, 10, 15))) {
+            return "PRELIM";
+        } else if (currentDate.isBefore(java.time.LocalDate.of(2025, 11, 30))) {
+            return "MIDTERM";
         } else {
-            // Default text area for other categories
-            contentPanel = createDefaultTextPanel(category, currentContent, updateFunction);
+            return "FINALS";
         }
-        
-        panel.add(contentPanel, BorderLayout.CENTER);
-        
-        currentMedicalContentView = panel; // Store current view
-        medicalContentPanel.add(panel, BorderLayout.CENTER);
-        medicalContentPanel.revalidate();
-        medicalContentPanel.repaint();
     }
     
-    /**
-     * Creates default text panel for categories
-     */
-    private JPanel createDefaultTextPanel(String category, String currentContent, java.util.function.Consumer<String> updateFunction) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        
-        // Content area
-        JTextArea contentArea = new JTextArea();
-        contentArea.setFont(new Font("Arial", Font.PLAIN, 12));
-        contentArea.setLineWrap(true);
-        contentArea.setWrapStyleWord(true);
-        contentArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Load existing content or show placeholder
-        if (currentContent != null && !currentContent.isEmpty()) {
-            contentArea.setText(currentContent);
-        } else {
-            // Set helpful placeholder text based on category
-            String placeholder = getPlaceholderText(category);
-            contentArea.setText(placeholder);
-            contentArea.setForeground(Color.GRAY);
+    private double getCurrentExamPeriodDue(String period) {
+        switch (period) {
+            case "PRELIM":
+                return accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.PRELIM);
+            case "MIDTERM":
+                return accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.MIDTERM);
+            case "FINALS":
+                return accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.FINALS);
+            default:
+                return accountStatement.getBalance();
         }
-        
-        // Clear placeholder on focus
-        contentArea.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusGained(java.awt.event.FocusEvent e) {
-                if (contentArea.getForeground() == Color.GRAY) {
-                    contentArea.setText("");
-                    contentArea.setForeground(Color.BLACK);
-                }
-            }
-            
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                if (contentArea.getText().isEmpty()) {
-                    contentArea.setText(getPlaceholderText(category));
-                    contentArea.setForeground(Color.GRAY);
-                }
-            }
-        });
-        
-        // Update the medical record when text changes
-        contentArea.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { updateContent(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { updateContent(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { updateContent(); }
-            
-            private void updateContent() {
-                if (contentArea.getForeground() != Color.GRAY) {
-                    updateFunction.accept(contentArea.getText());
-                }
-            }
-        });
-        
-        JScrollPane scrollPane = new JScrollPane(contentArea);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        return panel;
     }
     
-    /**
-     * Get placeholder text for medical categories
-     */
-    private String getPlaceholderText(String category) {
-        if (category.contains("Allergies")) {
-            return "Enter any known allergies to medications, foods, or environmental factors...\n\nExample:\n- Penicillin\n- Peanuts\n- Dust mites";
-        } else if (category.contains("Past Medical History")) {
-            return "Enter previous hospitalizations, surgeries, or chronic conditions...\n\nExample:\n- Appendectomy (2020)\n- Asthma since childhood\n- Hospitalized for dengue (2019)";
-        } else if (category.contains("Childhood Diseases")) {
-            return "Enter childhood diseases...\n\nExample:\n- Chickenpox (age 5)\n- Measles (age 7)\n- Mumps (age 8)";
-        } else if (category.contains("Gynecologic History")) {
-            return "For female students: Enter relevant gynecologic history...\n\n- LMP (Last Menstrual Period):\n- Cycle regularity:\n- Any concerns:";
-        } else if (category.contains("Personal/Social History")) {
-            return "Enter lifestyle and social history...\n\nExample:\n- Smoking: None\n- Alcohol: Occasional\n- Exercise: 3x per week\n- Sleep: 6-8 hours daily";
-        } else if (category.contains("Immunization")) {
-            return "Enter immunization history...\n\nExample:\n- COVID-19 Vaccine: Completed (2021)\n- Hepatitis B: Completed\n- Flu Vaccine: Annual\n- Tetanus: Last booster (2020)";
-        } else if (category.contains("Others")) {
-            return "Enter any other relevant medical information...\n\n- Family medical history\n- Current medications\n- Vitamins/supplements\n- Other concerns";
-        } else if (category.contains("Consultation Record")) {
-            return "Enter consultation details...\n\nDate: \nTime: \nChief Complaint: \nVital Signs: \nDiagnosis: \nTreatment/Medications: \nFollow-up: ";
+    private boolean isCurrentExamPeriodPaid(String period) {
+        switch (period) {
+            case "PRELIM":
+                return accountStatement.isPrelimPaid();
+            case "MIDTERM":
+                return accountStatement.isMidtermPaid();
+            case "FINALS":
+                return accountStatement.isFinalsPaid();
+            default:
+                return accountStatement.getBalance() <= 0;
         }
-        return "Enter information...";
     }
-    
-    /**
-     * Creates Past Medical History panel with table and details
-     */
-    private JPanel createPastMedicalHistoryPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        
-        // Parse existing data
-        String existingData = currentMedicalRecord.getPastMedicalHistory();
-        
-        // Create form panel
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setBackground(Color.WHITE);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Table headers
-        String[] columnNames = {"Sickness", "Details"};
-        
-        // Create table model
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return true;
-            }
-        };
-        
-        // Parse existing data and add to table
-        if (existingData != null && !existingData.isEmpty()) {
-            String[] lines = existingData.split("\n");
-            for (String line : lines) {
-                if (line.contains(":")) {
-                    String[] parts = line.split(":", 2);
-                    model.addRow(new Object[]{parts[0].trim(), parts[1].trim()});
-                }
-            }
-        }
-        
-        // Add some empty rows if table is empty
-        if (model.getRowCount() == 0) {
-            for (int i = 0; i < 5; i++) {
-                model.addRow(new Object[]{"", ""});
-            }
-        }
-        
-        // Create table
-        JTable table = new JTable(model);
-        table.setRowHeight(25);
-        table.setFont(new Font("Arial", Font.PLAIN, 12));
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
-        table.getTableHeader().setBackground(new Color(240, 240, 240));
-        
-        // Set column widths
-        table.getColumnModel().getColumn(0).setPreferredWidth(200);
-        table.getColumnModel().getColumn(1).setPreferredWidth(400);
-        
-        // Add table change listener to update medical record
-        model.addTableModelListener(e -> {
-            StringBuilder data = new StringBuilder();
-            for (int i = 0; i < model.getRowCount(); i++) {
-                String sickness = (String) model.getValueAt(i, 0);
-                String details = (String) model.getValueAt(i, 1);
-                if (sickness != null && !sickness.trim().isEmpty()) {
-                    data.append(sickness).append(": ").append(details).append("\n");
-                }
-            }
-            currentMedicalRecord.setPastMedicalHistory(data.toString().trim());
-        });
-        
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        scrollPane.setPreferredSize(new Dimension(600, 200));
-        formPanel.add(scrollPane);
-        
-        // Add row button
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(Color.WHITE);
-        JButton addRowBtn = new JButton("+ Add Row");
-        addRowBtn.addActionListener(e -> {
-            model.addRow(new Object[]{"", ""});
-        });
-        buttonPanel.add(addRowBtn);
-        formPanel.add(buttonPanel);
-        
-        // Select link
-        JLabel selectLabel = new JLabel("<html><u>SELECT</u></html>");
-        selectLabel.setForeground(new Color(0, 102, 204));
-        selectLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        selectLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                // Show common conditions dialog
-                String[] commonConditions = {
-                    "Hypertension", "Diabetes", "Asthma", "Allergies", 
-                    "Heart Disease", "Kidney Disease", "Liver Disease",
-                    "Tuberculosis", "Pneumonia", "COVID-19"
-                };
-                String selected = (String) JOptionPane.showInputDialog(
-                    panel, "Select a condition:", "Common Conditions",
-                    JOptionPane.PLAIN_MESSAGE, null, commonConditions, commonConditions[0]
-                );
-                if (selected != null) {
-                    // Find first empty row or add new one
-                    boolean added = false;
-                    for (int i = 0; i < model.getRowCount(); i++) {
-                        if (model.getValueAt(i, 0).toString().isEmpty()) {
-                            model.setValueAt(selected, i, 0);
-                            added = true;
-                            break;
-                        }
-                    }
-                    if (!added) {
-                        model.addRow(new Object[]{selected, ""});
-                    }
-                }
-            }
-        });
-        buttonPanel.add(selectLabel);
-        
-        panel.add(formPanel, BorderLayout.CENTER);
-        return panel;
-    }
-    
-    /**
-     * Creates Childhood Diseases panel with checkboxes
-     */
-    private JPanel createChildhoodDiseasesPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Parse existing data
-        String existingData = currentMedicalRecord.getChildhoodDiseases();
-        java.util.Set<String> selectedDiseases = new java.util.HashSet<>();
-        if (existingData != null && !existingData.isEmpty()) {
-            selectedDiseases.addAll(java.util.Arrays.asList(existingData.split(",")));
-        }
-        
-        // Common childhood diseases
-        String[] diseases = {
-            "Chickenpox", "Measles", "Mumps", "Rubella",
-            "Whooping Cough", "Polio", "Diphtheria", "Tetanus",
-            "Hepatitis A", "Hepatitis B", "Meningitis", "Pneumonia"
-        };
-        
-        // Create checkbox panel
-        JPanel checkboxPanel = new JPanel(new GridLayout(0, 3, 10, 10));
-        checkboxPanel.setBackground(Color.WHITE);
-        
-        java.util.List<JCheckBox> checkboxes = new java.util.ArrayList<>();
-        for (String disease : diseases) {
-            JCheckBox checkbox = new JCheckBox(disease);
-            checkbox.setBackground(Color.WHITE);
-            checkbox.setSelected(selectedDiseases.contains(disease.trim()));
-            checkbox.addActionListener(e -> {
-                // Update medical record
-                StringBuilder selected = new StringBuilder();
-                for (JCheckBox cb : checkboxes) {
-                    if (cb.isSelected()) {
-                        if (selected.length() > 0) selected.append(", ");
-                        selected.append(cb.getText());
-                    }
-                }
-                currentMedicalRecord.setChildhoodDiseases(selected.toString());
-            });
-            checkboxes.add(checkbox);
-            checkboxPanel.add(checkbox);
-        }
-        
-        contentPanel.add(checkboxPanel);
-        
-        // Add "Others" text field
-        contentPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-        JPanel othersPanel = new JPanel(new BorderLayout());
-        othersPanel.setBackground(Color.WHITE);
-        othersPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        
-        JLabel othersLabel = new JLabel("Others: ");
-        othersLabel.setPreferredSize(new Dimension(60, 25));
-        othersPanel.add(othersLabel, BorderLayout.WEST);
-        
-        JTextField othersField = new JTextField();
-        othersField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { updateOthers(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { updateOthers(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { updateOthers(); }
-            
-            private void updateOthers() {
-                String current = currentMedicalRecord.getChildhoodDiseases();
-                String others = othersField.getText();
-                if (!others.isEmpty()) {
-                    if (current != null && !current.isEmpty()) {
-                        currentMedicalRecord.setChildhoodDiseases(current + ", " + others);
-                    } else {
-                        currentMedicalRecord.setChildhoodDiseases(others);
-                    }
-                }
-            }
-        });
-        othersPanel.add(othersField, BorderLayout.CENTER);
-        contentPanel.add(othersPanel);
-        
-        JScrollPane scrollPane = new JScrollPane(contentPanel);
-        scrollPane.setBorder(null);
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        return panel;
-    }
-    
-    /**
-     * Creates Gynecologic History panel
-     */
-    private JPanel createGynecologicHistoryPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setBackground(Color.WHITE);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Parse existing data
-        String existingData = currentMedicalRecord.getGynecologicHistory();
-        java.util.Map<String, String> dataMap = new java.util.HashMap<>();
-        if (existingData != null && !existingData.isEmpty()) {
-            String[] lines = existingData.split("\n");
-            for (String line : lines) {
-                if (line.contains(":")) {
-                    String[] parts = line.split(":", 2);
-                    dataMap.put(parts[0].trim(), parts[1].trim());
-                }
-            }
-        }
-        
-        // Menarche
-        JPanel menarchePanel = createLabeledFieldPanel("Menarche (Age of 1st Menstruation):", 
-            dataMap.getOrDefault("Menarche", ""));
-        formPanel.add(menarchePanel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        // Interval
-        JPanel intervalPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        intervalPanel.setBackground(Color.WHITE);
-        intervalPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
-        intervalPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        JLabel intervalLabel = new JLabel("Interval:");
-        intervalLabel.setPreferredSize(new Dimension(200, 25));
-        intervalPanel.add(intervalLabel);
-        
-        JComboBox<String> intervalCombo = new JComboBox<>(new String[]{
-            "", "Regular", "Irregular", "21-35 days", "Less than 21 days", "More than 35 days"
-        });
-        intervalCombo.setSelectedItem(dataMap.getOrDefault("Interval", ""));
-        intervalCombo.setPreferredSize(new Dimension(200, 25));
-        intervalPanel.add(intervalCombo);
-        formPanel.add(intervalPanel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        // Duration of menstruation
-        JPanel durationPanel = createLabeledFieldPanel("Duration of menstruation:", 
-            dataMap.getOrDefault("Duration", ""));
-        formPanel.add(durationPanel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        // Dysmenorrhea
-        JPanel dysmenorrheaPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        dysmenorrheaPanel.setBackground(Color.WHITE);
-        dysmenorrheaPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
-        dysmenorrheaPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        JLabel dysmenorrheaLabel = new JLabel("Dysmenorrhea:");
-        dysmenorrheaLabel.setPreferredSize(new Dimension(200, 25));
-        dysmenorrheaPanel.add(dysmenorrheaLabel);
-        
-        JComboBox<String> dysmenorrheaCombo = new JComboBox<>(new String[]{"", "None", "Mild", "Moderate", "Severe"});
-        dysmenorrheaCombo.setSelectedItem(dataMap.getOrDefault("Dysmenorrhea", ""));
-        dysmenorrheaCombo.setPreferredSize(new Dimension(200, 25));
-        dysmenorrheaPanel.add(dysmenorrheaCombo);
-        formPanel.add(dysmenorrheaPanel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        // No. of Pregnancy
-        JPanel pregnancyPanel = createLabeledFieldPanel("No. of Pregnancy:", 
-            dataMap.getOrDefault("Pregnancy", ""));
-        formPanel.add(pregnancyPanel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        // No. of Living Children
-        JPanel childrenPanel = createLabeledFieldPanel("No. of Living Children:", 
-            dataMap.getOrDefault("Children", ""));
-        formPanel.add(childrenPanel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        // Update button
-        JButton updateBtn = new JButton("Update");
-        updateBtn.setBackground(new Color(13, 37, 73));
-        updateBtn.setForeground(Color.WHITE);
-        updateBtn.addActionListener(e -> {
-            // Gather all data and save
-            StringBuilder data = new StringBuilder();
-            
-            JTextField menarcheField = (JTextField) menarchePanel.getComponent(1);
-            if (!menarcheField.getText().isEmpty()) {
-                data.append("Menarche: ").append(menarcheField.getText()).append("\n");
-            }
-            
-            if (!intervalCombo.getSelectedItem().toString().isEmpty()) {
-                data.append("Interval: ").append(intervalCombo.getSelectedItem()).append("\n");
-            }
-            
-            JTextField durationField = (JTextField) durationPanel.getComponent(1);
-            if (!durationField.getText().isEmpty()) {
-                data.append("Duration: ").append(durationField.getText()).append("\n");
-            }
-            
-            if (!dysmenorrheaCombo.getSelectedItem().toString().isEmpty()) {
-                data.append("Dysmenorrhea: ").append(dysmenorrheaCombo.getSelectedItem()).append("\n");
-            }
-            
-            JTextField pregnancyField = (JTextField) pregnancyPanel.getComponent(1);
-            if (!pregnancyField.getText().isEmpty()) {
-                data.append("Pregnancy: ").append(pregnancyField.getText()).append("\n");
-            }
-            
-            JTextField childrenField = (JTextField) childrenPanel.getComponent(1);
-            if (!childrenField.getText().isEmpty()) {
-                data.append("Children: ").append(childrenField.getText()).append("\n");
-            }
-            
-            currentMedicalRecord.setGynecologicHistory(data.toString().trim());
-        });
-        
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(Color.WHITE);
-        buttonPanel.add(updateBtn);
-        formPanel.add(buttonPanel);
-        
-        panel.add(formPanel, BorderLayout.NORTH);
-        return panel;
-    }
-    
-    /**
-     * Creates Personal/Social History panel
-     */
-    private JPanel createPersonalSocialHistoryPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setBackground(Color.WHITE);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Parse existing data
-        String existingData = currentMedicalRecord.getPersonalSocialHistory();
-        java.util.Map<String, String> dataMap = new java.util.HashMap<>();
-        if (existingData != null && !existingData.isEmpty()) {
-            String[] lines = existingData.split("\n");
-            for (String line : lines) {
-                if (line.contains(":")) {
-                    String[] parts = line.split(":", 2);
-                    dataMap.put(parts[0].trim(), parts[1].trim());
-                }
-            }
-        }
-        
-        // Cigarette Smoker
-        JPanel smokerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        smokerPanel.setBackground(Color.WHITE);
-        smokerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
-        smokerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        JCheckBox smokerCheckbox = new JCheckBox("Cigarette Smoker:");
-        smokerCheckbox.setBackground(Color.WHITE);
-        smokerCheckbox.setSelected(dataMap.containsKey("Cigarette Smoker"));
-        smokerPanel.add(smokerCheckbox);
-        
-        JTextField sticksField = new JTextField(10);
-        sticksField.setText(dataMap.getOrDefault("Cigarette Smoker", ""));
-        JLabel sticksLabel = new JLabel("sticks/day");
-        smokerPanel.add(sticksField);
-        smokerPanel.add(sticksLabel);
-        
-        formPanel.add(smokerPanel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        // Alcoholic Beverage Drinker
-        JPanel drinkerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        drinkerPanel.setBackground(Color.WHITE);
-        drinkerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
-        drinkerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        JLabel drinkerLabel = new JLabel("Alcoholic Beverage Drinker:");
-        drinkerLabel.setPreferredSize(new Dimension(200, 25));
-        drinkerPanel.add(drinkerLabel);
-        
-        JComboBox<String> drinkerCombo = new JComboBox<>(new String[]{
-            "", "None", "Occasional", "Regular", "Heavy"
-        });
-        String drinkerValue = dataMap.getOrDefault("Alcoholic Beverage Drinker", "");
-        drinkerCombo.setSelectedItem(drinkerValue);
-        drinkerCombo.setPreferredSize(new Dimension(200, 25));
-        drinkerPanel.add(drinkerCombo);
-        
-        formPanel.add(drinkerPanel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-        
-        // Update button
-        JButton updateBtn = new JButton("Update");
-        updateBtn.setBackground(new Color(13, 37, 73));
-        updateBtn.setForeground(Color.WHITE);
-        updateBtn.addActionListener(e -> {
-            StringBuilder data = new StringBuilder();
-            
-            if (smokerCheckbox.isSelected() && !sticksField.getText().isEmpty()) {
-                data.append("Cigarette Smoker: ").append(sticksField.getText()).append(" sticks/day\n");
-            }
-            
-            if (!drinkerCombo.getSelectedItem().toString().isEmpty()) {
-                data.append("Alcoholic Beverage Drinker: ").append(drinkerCombo.getSelectedItem()).append("\n");
-            }
-            
-            currentMedicalRecord.setPersonalSocialHistory(data.toString().trim());
-        });
-        
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(Color.WHITE);
-        buttonPanel.add(updateBtn);
-        formPanel.add(buttonPanel);
-        
-        panel.add(formPanel, BorderLayout.NORTH);
-        return panel;
-    }
-    
-    /**
-     * Creates Immunization panel with table
-     */
-    private JPanel createImmunizationPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Parse existing data
-        String existingData = currentMedicalRecord.getImmunization();
-        
-        // Create table
-        String[] columnNames = {"Immunizations", "Date"};
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return true;
-            }
-        };
-        
-        // Parse existing data and add to table
-        if (existingData != null && !existingData.isEmpty()) {
-            String[] lines = existingData.split("\n");
-            for (String line : lines) {
-                if (line.contains(":")) {
-                    String[] parts = line.split(":", 2);
-                    model.addRow(new Object[]{parts[0].trim(), parts[1].trim()});
-                }
-            }
-        }
-        
-        // Add some default immunizations if empty
-        if (model.getRowCount() == 0) {
-            String[] defaultImmunizations = {
-                "BCG", "Hepatitis B", "DPT", "OPV/IPV", "Measles", 
-                "MMR", "COVID-19", "Influenza", "Pneumococcal", "HPV"
-            };
-            for (String immunization : defaultImmunizations) {
-                model.addRow(new Object[]{immunization, ""});
-            }
-        }
-        
-        JTable table = new JTable(model);
-        table.setRowHeight(25);
-        table.setFont(new Font("Arial", Font.PLAIN, 12));
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
-        table.getTableHeader().setBackground(new Color(240, 240, 240));
-        
-        // Set column widths
-        table.getColumnModel().getColumn(0).setPreferredWidth(300);
-        table.getColumnModel().getColumn(1).setPreferredWidth(200);
-        
-        // Add table change listener
-        model.addTableModelListener(e -> {
-            StringBuilder data = new StringBuilder();
-            for (int i = 0; i < model.getRowCount(); i++) {
-                String immunization = (String) model.getValueAt(i, 0);
-                String date = (String) model.getValueAt(i, 1);
-                if (immunization != null && !immunization.trim().isEmpty() && 
-                    date != null && !date.trim().isEmpty()) {
-                    data.append(immunization).append(": ").append(date).append("\n");
-                }
-            }
-            currentMedicalRecord.setImmunization(data.toString().trim());
-        });
-        
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        scrollPane.setPreferredSize(new Dimension(500, 300));
-        contentPanel.add(scrollPane);
-        
-        // Add row button
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(Color.WHITE);
-        JButton addRowBtn = new JButton("+ Add Immunization");
-        addRowBtn.addActionListener(e -> {
-            model.addRow(new Object[]{"", ""});
-        });
-        buttonPanel.add(addRowBtn);
-        
-        // Select link
-        JLabel selectLabel = new JLabel("<html><u>SELECT</u></html>");
-        selectLabel.setForeground(new Color(0, 102, 204));
-        selectLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        selectLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                // Show additional immunizations dialog
-                String[] additionalImmunizations = {
-                    "Varicella", "Hepatitis A", "Meningococcal", "Rotavirus",
-                    "Japanese Encephalitis", "Typhoid", "Yellow Fever", "Rabies"
-                };
-                String selected = (String) JOptionPane.showInputDialog(
-                    panel, "Select an immunization:", "Additional Immunizations",
-                    JOptionPane.PLAIN_MESSAGE, null, additionalImmunizations, additionalImmunizations[0]
-                );
-                if (selected != null) {
-                    model.addRow(new Object[]{selected, ""});
-                }
-            }
-        });
-        buttonPanel.add(selectLabel);
-        contentPanel.add(buttonPanel);
-        
-        panel.add(contentPanel, BorderLayout.CENTER);
-        return panel;
-    }
-    
-    /**
-     * Creates Others panel with medication fields
-     */
-    private JPanel createOthersPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setBackground(Color.WHITE);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Parse existing data
-        String existingData = currentMedicalRecord.getOthers();
-        java.util.Map<String, String> dataMap = new java.util.HashMap<>();
-        if (existingData != null && !existingData.isEmpty()) {
-            String[] lines = existingData.split("\n");
-            for (String line : lines) {
-                if (line.contains(":")) {
-                    String[] parts = line.split(":", 2);
-                    dataMap.put(parts[0].trim(), parts[1].trim());
-                }
-            }
-        }
-        
-        // Any special medication?
-        JPanel medicationPanel = new JPanel(new BorderLayout());
-        medicationPanel.setBackground(Color.WHITE);
-        medicationPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
-        medicationPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        JLabel medicationLabel = new JLabel("Any special medication?");
-        medicationLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));
-        medicationPanel.add(medicationLabel, BorderLayout.NORTH);
-        
-        JTextArea medicationArea = new JTextArea(3, 40);
-        medicationArea.setText(dataMap.getOrDefault("Special Medication", ""));
-        medicationArea.setLineWrap(true);
-        medicationArea.setWrapStyleWord(true);
-        JScrollPane medicationScroll = new JScrollPane(medicationArea);
-        medicationScroll.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        medicationPanel.add(medicationScroll, BorderLayout.CENTER);
-        
-        formPanel.add(medicationPanel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 15)));
-        
-        // Requires Special Care?
-        JPanel specialCarePanel = new JPanel(new BorderLayout());
-        specialCarePanel.setBackground(Color.WHITE);
-        specialCarePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
-        specialCarePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        JLabel specialCareLabel = new JLabel("Requires Special Care?");
-        specialCareLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));
-        specialCarePanel.add(specialCareLabel, BorderLayout.NORTH);
-        
-        JTextArea specialCareArea = new JTextArea(3, 40);
-        specialCareArea.setText(dataMap.getOrDefault("Special Care", ""));
-        specialCareArea.setLineWrap(true);
-        specialCareArea.setWrapStyleWord(true);
-        JScrollPane specialCareScroll = new JScrollPane(specialCareArea);
-        specialCareScroll.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        specialCarePanel.add(specialCareScroll, BorderLayout.CENTER);
-        
-        formPanel.add(specialCarePanel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 15)));
-        
-        // Others field
-        JPanel othersFieldPanel = new JPanel(new BorderLayout());
-        othersFieldPanel.setBackground(Color.WHITE);
-        othersFieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
-        othersFieldPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        JLabel othersLabel = new JLabel("Others:");
-        othersLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));
-        othersFieldPanel.add(othersLabel, BorderLayout.NORTH);
-        
-        JTextArea othersArea = new JTextArea(3, 40);
-        othersArea.setText(dataMap.getOrDefault("Others", ""));
-        othersArea.setLineWrap(true);
-        othersArea.setWrapStyleWord(true);
-        JScrollPane othersScroll = new JScrollPane(othersArea);
-        othersScroll.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        othersFieldPanel.add(othersScroll, BorderLayout.CENTER);
-        
-        formPanel.add(othersFieldPanel);
-        formPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-        
-        // Update button
-        JButton updateBtn = new JButton("Update");
-        updateBtn.setBackground(new Color(13, 37, 73));
-        updateBtn.setForeground(Color.WHITE);
-        updateBtn.addActionListener(e -> {
-            StringBuilder data = new StringBuilder();
-            
-            if (!medicationArea.getText().trim().isEmpty()) {
-                data.append("Special Medication: ").append(medicationArea.getText().trim()).append("\n");
-            }
-            
-            if (!specialCareArea.getText().trim().isEmpty()) {
-                data.append("Special Care: ").append(specialCareArea.getText().trim()).append("\n");
-            }
-            
-            if (!othersArea.getText().trim().isEmpty()) {
-                data.append("Others: ").append(othersArea.getText().trim()).append("\n");
-            }
-            
-            currentMedicalRecord.setOthers(data.toString().trim());
-        });
-        
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(Color.WHITE);
-        buttonPanel.add(updateBtn);
-        formPanel.add(buttonPanel);
-        
-        panel.add(formPanel, BorderLayout.NORTH);
-        return panel;
-    }
-    
-    /**
-     * Creates Consultation Record panel with table
-     */
-    private JPanel createConsultationRecordPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Parse existing data
-        String existingData = currentMedicalRecord.getConsultationRecord();
-        
-        // Create table with all columns from the image
-        String[] columnNames = {"Date/Time", "Age", "BMI", "BP", "TEMP", "RR", "PR", "SPO2", "Remarks"};
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return true;
-            }
-        };
-        
-        // Parse existing data and add to table
-        if (existingData != null && !existingData.isEmpty()) {
-            String[] lines = existingData.split("\n");
-            for (String line : lines) {
-                String[] parts = line.split("\\|");
-                if (parts.length >= 9) {
-                    model.addRow(parts);
-                }
-            }
-        }
-        
-        // Add empty rows if table is empty
-        if (model.getRowCount() == 0) {
-            for (int i = 0; i < 3; i++) {
-                model.addRow(new Object[]{"", "", "", "", "", "", "", "", ""});
-            }
-        }
-        
-        JTable table = new JTable(model);
-        table.setRowHeight(25);
-        table.setFont(new Font("Arial", Font.PLAIN, 11));
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 11));
-        table.getTableHeader().setBackground(new Color(240, 240, 240));
-        
-        // Set column widths
-        table.getColumnModel().getColumn(0).setPreferredWidth(120); // Date/Time
-        table.getColumnModel().getColumn(1).setPreferredWidth(50);  // Age
-        table.getColumnModel().getColumn(2).setPreferredWidth(50);  // BMI
-        table.getColumnModel().getColumn(3).setPreferredWidth(60);  // BP
-        table.getColumnModel().getColumn(4).setPreferredWidth(50);  // TEMP
-        table.getColumnModel().getColumn(5).setPreferredWidth(50);  // RR
-        table.getColumnModel().getColumn(6).setPreferredWidth(50);  // PR
-        table.getColumnModel().getColumn(7).setPreferredWidth(50);  // SPO2
-        table.getColumnModel().getColumn(8).setPreferredWidth(150); // Remarks
-        
-        // Add table change listener
-        model.addTableModelListener(e -> {
-            StringBuilder data = new StringBuilder();
-            for (int i = 0; i < model.getRowCount(); i++) {
-                boolean hasData = false;
-                StringBuilder row = new StringBuilder();
-                for (int j = 0; j < model.getColumnCount(); j++) {
-                    Object value = model.getValueAt(i, j);
-                    if (value != null && !value.toString().trim().isEmpty()) {
-                        hasData = true;
-                    }
-                    row.append(value != null ? value.toString() : "");
-                    if (j < model.getColumnCount() - 1) {
-                        row.append("|");
-                    }
-                }
-                if (hasData) {
-                    data.append(row).append("\n");
-                }
-            }
-            currentMedicalRecord.setConsultationRecord(data.toString().trim());
-        });
-        
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        scrollPane.setPreferredSize(new Dimension(700, 300));
-        contentPanel.add(scrollPane);
-        
-        // Add row button
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(Color.WHITE);
-        JButton addRowBtn = new JButton("+ Add Record");
-        addRowBtn.addActionListener(e -> {
-            // Add new row with current date/time
-            String currentDateTime = new java.text.SimpleDateFormat("MM/dd/yyyy HH:mm").format(new java.util.Date());
-            model.addRow(new Object[]{currentDateTime, "", "", "", "", "", "", "", ""});
-        });
-        buttonPanel.add(addRowBtn);
-        contentPanel.add(buttonPanel);
-        
-        panel.add(contentPanel, BorderLayout.CENTER);
-        return panel;
-    }
-    
-    /**
-     * Helper method to create labeled field panel
-     */
-    private JPanel createLabeledFieldPanel(String labelText, String value) {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panel.setBackground(Color.WHITE);
-        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
-        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        JLabel label = new JLabel(labelText);
-        label.setPreferredSize(new Dimension(200, 25));
-        panel.add(label);
-        
-        JTextField field = new JTextField(20);
-        field.setText(value);
-        panel.add(field);
-        
-        return panel;
-    }
-    
-    /**
-     * Shows personal information and emergency contact in the main content area
-     */
-    private void showMedicalPersonalInfo() {
-        // Save any pending changes before switching
-        if (currentMedicalContentView != null) {
-            DataManager.saveMedicalRecord(currentMedicalRecord);
-        }
-        
-        medicalContentPanel.removeAll();
-        
-        // Create scrollable content panel
-        JPanel scrollContent = new JPanel();
-        scrollContent.setLayout(new BoxLayout(scrollContent, BoxLayout.Y_AXIS));
-        scrollContent.setBackground(Color.WHITE);
-        scrollContent.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Personal Information Section
-        JPanel personalInfoTitlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        personalInfoTitlePanel.setBackground(new Color(245, 245, 245));
-        personalInfoTitlePanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-        personalInfoTitlePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        
-        JLabel personalInfoTitle = new JLabel("PERSONAL INFORMATION");
-        personalInfoTitle.setFont(new Font("Arial", Font.BOLD, 15));
-        personalInfoTitle.setForeground(new Color(13, 37, 73));
-        personalInfoTitlePanel.add(personalInfoTitle);
-        scrollContent.add(personalInfoTitlePanel);
-        scrollContent.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        JPanel personalInfoPanel = createPersonalInfoPanel();
-        scrollContent.add(personalInfoPanel);
-        
-        // Add separator
-        scrollContent.add(Box.createRigidArea(new Dimension(0, 20)));
-        JSeparator separator = new JSeparator();
-        separator.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
-        scrollContent.add(separator);
-        scrollContent.add(Box.createRigidArea(new Dimension(0, 20)));
-        
-        // Emergency Contact Section
-        JPanel emergencyTitlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        emergencyTitlePanel.setBackground(new Color(245, 245, 245));
-        emergencyTitlePanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-        emergencyTitlePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        
-        JLabel emergencyTitle = new JLabel("PERSON TO CONTACT IN CASE OF EMERGENCY");
-        emergencyTitle.setFont(new Font("Arial", Font.BOLD, 15));
-        emergencyTitle.setForeground(new Color(13, 37, 73));
-        emergencyTitlePanel.add(emergencyTitle);
-        scrollContent.add(emergencyTitlePanel);
-        scrollContent.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        JPanel emergencyContactPanel = createEmergencyContactPanel();
-        scrollContent.add(emergencyContactPanel);
-        
-        // Add scroll pane
-        JScrollPane scrollPane = new JScrollPane(scrollContent);
-        scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        
-        currentMedicalContentView = scrollContent; // Store current view
-        medicalContentPanel.add(scrollPane, BorderLayout.CENTER);
-        medicalContentPanel.revalidate();
-        medicalContentPanel.repaint();
-    }
-    
-    /**
-     * Creates the Personal Information panel
-     */
-    private JPanel createPersonalInfoPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(230, 230, 230)),
-            BorderFactory.createEmptyBorder(15, 25, 15, 25)
-        ));
-        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.setMaximumSize(new Dimension(700, Integer.MAX_VALUE));
-        
-        // Get student data from database
-        StudentInfo studentInfo = DataManager.getStudentInfo(studentID);
-        String profileString = DataManager.getStudentProfile(studentID);
-        ProfileData profileData = parseProfileData(profileString);
-        
-        // Name field
-        String fullName = studentInfo != null ? 
-            studentInfo.getFirstName() + " " + studentInfo.getLastName() : studentName;
-        panel.add(createMedicalFieldPanel("Name:", fullName.toUpperCase(), false));
-        panel.add(Box.createRigidArea(new Dimension(0, 12)));
-        
-        // Date of Birth field
-        String dob = studentInfo != null ? studentInfo.getDateOfBirth() : "APR 01, 2006";
-        panel.add(createMedicalFieldPanel("Date of Birth:", dob, false));
-        panel.add(Box.createRigidArea(new Dimension(0, 12)));
-        
-        // Gender field
-        String gender = profileData != null ? profileData.getGender() : "Female";
-        panel.add(createMedicalFieldPanel("Gender:", gender, false));
-        panel.add(Box.createRigidArea(new Dimension(0, 12)));
-        
-        // Address field
-        String address = profileData != null ? profileData.getBaguioAddress() : 
-            "Camp 6, Camp 4, Tuba Benguet";
-        panel.add(createMedicalFieldPanel("Address:", address, false));
-        panel.add(Box.createRigidArea(new Dimension(0, 12)));
-        
-        // Contact Number field
-        String contact = profileData != null ? profileData.getCellphone() : "09665295444";
-        panel.add(createMedicalFieldPanel("Contact Number:", contact, false));
-        panel.add(Box.createRigidArea(new Dimension(0, 12)));
-        
-        // Course/Year field
-        panel.add(createMedicalFieldPanel("Course/Year:", "BSIT 2", false));
-        
-        return panel;
-    }
-    
-    /**
-     * Creates a field panel with label and text field
-     */
-    private JPanel createMedicalFieldPanel(String labelText, String value, boolean editable) {
-        JPanel fieldPanel = new JPanel(new BorderLayout(10, 0));
-        fieldPanel.setBackground(Color.WHITE);
-        fieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40)); // Increased height
-        fieldPanel.setPreferredSize(new Dimension(600, 40)); // Fixed preferred size
-        fieldPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        JLabel label = createMedicalLabel(labelText);
-        label.setPreferredSize(new Dimension(180, 30)); // Wider label
-        label.setFont(new Font("Arial", Font.PLAIN, 13));
-        fieldPanel.add(label, BorderLayout.WEST);
-        
-        JTextField field = createMedicalTextField(value, editable);
-        field.setFont(new Font("Arial", Font.PLAIN, 13));
-        fieldPanel.add(field, BorderLayout.CENTER);
-        
-        return fieldPanel;
-    }
-    
-    /**
-     * Creates the Emergency Contact panel
-     */
-    private JPanel createEmergencyContactPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(230, 230, 230)),
-            BorderFactory.createEmptyBorder(15, 25, 15, 25)
-        ));
-        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.setMaximumSize(new Dimension(700, Integer.MAX_VALUE));
-        
-        // Get data from medical record or profile data as fallback
-        String profileString = DataManager.getStudentProfile(studentID);
-        ProfileData profileData = parseProfileData(profileString);
-        
-        // Name field - use from medical record first, then fallback to profile data
-        String emergencyName = currentMedicalRecord.getEmergencyContactName();
-        if (emergencyName == null || emergencyName.isEmpty()) {
-            emergencyName = profileData != null && profileData.getGuardianName() != null ? 
-                profileData.getGuardianName() : "";
-            // Update medical record with profile data
-            currentMedicalRecord.setEmergencyContactName(emergencyName);
-        }
-        JTextField nameField = createEditableMedicalField("Name:", emergencyName);
-        nameField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { updateName(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { updateName(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { updateName(); }
-            private void updateName() {
-                currentMedicalRecord.setEmergencyContactName(nameField.getText());
-            }
-        });
-        panel.add((JPanel)nameField.getClientProperty("parentPanel"));
-        panel.add(Box.createRigidArea(new Dimension(0, 12))); // Consistent spacing
-        
-        // Address field - use from medical record first, then fallback to profile data
-        String emergencyAddress = currentMedicalRecord.getEmergencyContactAddress();
-        if (emergencyAddress == null || emergencyAddress.isEmpty()) {
-            emergencyAddress = profileData != null && profileData.getGuardianAddress() != null ? 
-                profileData.getGuardianAddress() : "";
-            currentMedicalRecord.setEmergencyContactAddress(emergencyAddress);
-        }
-        JTextField addressField = createEditableMedicalField("Address:", emergencyAddress);
-        addressField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { updateAddress(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { updateAddress(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { updateAddress(); }
-            private void updateAddress() {
-                currentMedicalRecord.setEmergencyContactAddress(addressField.getText());
-            }
-        });
-        panel.add((JPanel)addressField.getClientProperty("parentPanel"));
-        panel.add(Box.createRigidArea(new Dimension(0, 12))); // Consistent spacing
-        
-        // Contact Number field
-        String emergencyNumber = currentMedicalRecord.getEmergencyContactNumber();
-        if (emergencyNumber == null || emergencyNumber.isEmpty()) {
-            emergencyNumber = "";
-            currentMedicalRecord.setEmergencyContactNumber(emergencyNumber);
-        }
-        JTextField numberField = createEditableMedicalField("Contact Number:", emergencyNumber);
-        numberField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { updateNumber(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { updateNumber(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { updateNumber(); }
-            private void updateNumber() {
-                currentMedicalRecord.setEmergencyContactNumber(numberField.getText());
-            }
-        });
-        panel.add((JPanel)numberField.getClientProperty("parentPanel"));
-        
-        return panel;
-    }
-    
-    /**
-     * Creates an editable medical field that returns the text field for further processing
-     */
-    private JTextField createEditableMedicalField(String labelText, String value) {
-        JPanel fieldPanel = new JPanel(new BorderLayout(10, 0));
-        fieldPanel.setBackground(Color.WHITE);
-        fieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40)); // Consistent height
-        fieldPanel.setPreferredSize(new Dimension(600, 40));
-        fieldPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        JLabel label = createMedicalLabel(labelText);
-        label.setPreferredSize(new Dimension(180, 30)); // Consistent width
-        label.setFont(new Font("Arial", Font.PLAIN, 13));
-        fieldPanel.add(label, BorderLayout.WEST);
-        
-        JTextField field = createMedicalTextField(value, true);
-        field.setFont(new Font("Arial", Font.PLAIN, 13));
-        fieldPanel.add(field, BorderLayout.CENTER);
-        
-        // Store the parent panel in the text field's client property for retrieval
-        field.putClientProperty("parentPanel", fieldPanel);
-        
-        return field;
-    }
-    
-    /**
-     * Creates a label for medical record fields
-     */
-    private JLabel createMedicalLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Arial", Font.PLAIN, 13));
-        label.setForeground(new Color(50, 50, 50));
-        label.setVerticalAlignment(SwingConstants.CENTER);
-        return label;
-    }
-    
-    /**
-     * Creates a text field for medical record data
-     */
-    private JTextField createMedicalTextField(String text, boolean editable) {
-        JTextField field = new JTextField(text);
-        field.setFont(new Font("Arial", Font.PLAIN, 13));
-        field.setEditable(editable);
-        field.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(8, 10, 8, 10) // More padding
-        ));
-        field.setPreferredSize(new Dimension(400, 35)); // Consistent size
-        if (!editable) {
-            field.setBackground(new Color(248, 248, 248));
-            field.setForeground(new Color(80, 80, 80));
-        }
-        return field;
-    }
-}
-
-/**
- * Data class to hold parsed profile information
- */
-class ProfileData {
-    String gender = "";
-    String citizenship = "";
-    String religion = "";
-    String civilStatus = "";
-    String birthplace = "";
-    String nationality = "";
-    String homeAddress = "";
-    String homeTel = "";
-    String baguioAddress = "";
-    String baguioTel = "";
-    String cellphone = "";
-    String fatherName = "";
-    String fatherOcc = "";
-    String motherName = "";
-    String motherOcc = "";
-    String guardianName = "";
-    String guardianAddress = "";
-    
-    // Getter methods with proper null/empty handling
-    public String getGender() { return (gender != null && !gender.trim().isEmpty()) ? gender : "N/A"; }
-    public String getCitizenship() { return (citizenship != null && !citizenship.trim().isEmpty()) ? citizenship : "N/A"; }
-    public String getReligion() { return (religion != null && !religion.trim().isEmpty()) ? religion : "N/A"; }
-    public String getCivilStatus() { return (civilStatus != null && !civilStatus.trim().isEmpty()) ? civilStatus : "N/A"; }
-    public String getBirthplace() { return (birthplace != null && !birthplace.trim().isEmpty()) ? birthplace : "N/A"; }
-    public String getNationality() { return (nationality != null && !nationality.trim().isEmpty()) ? nationality : "N/A"; }
-    public String getHomeAddress() { return (homeAddress != null && !homeAddress.trim().isEmpty()) ? homeAddress : "N/A"; }
-    public String getHomeTel() { return (homeTel != null && !homeTel.trim().isEmpty()) ? homeTel : "N/A"; }
-    public String getBaguioAddress() { return (baguioAddress != null && !baguioAddress.trim().isEmpty()) ? baguioAddress : "N/A"; }
-    public String getBaguioTel() { return (baguioTel != null && !baguioTel.trim().isEmpty()) ? baguioTel : "N/A"; }
-    public String getCellphone() { return (cellphone != null && !cellphone.trim().isEmpty()) ? cellphone : "N/A"; }
-    public String getFatherName() { return (fatherName != null && !fatherName.trim().isEmpty()) ? fatherName : "N/A"; }
-    public String getFatherOcc() { return (fatherOcc != null && !fatherOcc.trim().isEmpty()) ? fatherOcc : "N/A"; }
-    public String getMotherName() { return (motherName != null && !motherName.trim().isEmpty()) ? motherName : "N/A"; }
-    public String getMotherOcc() { return (motherOcc != null && !motherOcc.trim().isEmpty()) ? motherOcc : "N/A"; }
-    public String getGuardianName() { return (guardianName != null && !guardianName.trim().isEmpty()) ? guardianName : "N/A"; }
-    public String getGuardianAddress() { return (guardianAddress != null && !guardianAddress.trim().isEmpty()) ? guardianAddress : "N/A"; }
 }
