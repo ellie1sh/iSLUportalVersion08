@@ -1,0 +1,15 @@
+# Payment Gateway Image Placeholders
+
+This directory contains placeholder files for payment gateway images.
+In a real implementation, these would be actual PNG/JPG images for:
+
+- upay.png - UnionBank UPay logo
+- dragonpay.png - DragonPay logo
+- bpi.png - BPI Online logo
+- bdo.png - BDO Online logo
+- bdobills.png - BDO Bills Payment logo
+- bukas.png - Bukas logo
+
+Each image should be approximately 200x60 pixels for proper display in the payment options panel.
+
+For testing purposes, you can use placeholder images or create simple colored rectangles with the payment method names.
