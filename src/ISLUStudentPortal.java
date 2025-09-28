@@ -3670,6 +3670,39 @@ public class ISLUStudentPortal extends JFrame {
         }
         return "STUDENT NAME NOT FOUND";
     }
+    
+    /**
+     * Gets the student's program information from the course schedule database
+     */
+    private String getStudentProgramFromDatabase(String studentID) {
+        try {
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader("courseSchedules.txt"));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith(studentID + ",")) {
+                    String[] parts = line.split(",");
+                    if (parts.length >= 3) {
+                        String courseNumber = parts[2];
+                        // Determine program based on course prefix
+                        if (courseNumber.startsWith("IT")) {
+                            reader.close();
+                            return "BSIT 2"; // IT courses indicate BSIT program
+                        } else if (courseNumber.startsWith("CS")) {
+                            reader.close();
+                            return "BSCS 2"; // CS courses indicate BSCS program
+                        } else if (courseNumber.startsWith("IS")) {
+                            reader.close();
+                            return "BSIS 2"; // IS courses indicate BSIS program
+                        }
+                    }
+                }
+            }
+            reader.close();
+        } catch (java.io.IOException e) {
+            System.err.println("Error reading course schedules: " + e.getMessage());
+        }
+        return "BSIT 2"; // Default fallback
+    }
 
     /**
      * Creates the Statement of Accounts panel matching the HTML/CSS design from images
@@ -3741,15 +3774,16 @@ public class ISLUStudentPortal extends JFrame {
         studentTextPanel.setLayout(new BoxLayout(studentTextPanel, BoxLayout.Y_AXIS));
         studentTextPanel.setBackground(Color.WHITE);
         
-        // Student ID and Program - using dynamic data
-        String programInfo = "BSIT 2"; // Default program info
+        // Student ID and Program - using real database data
+        StudentInfo studentInfo = DataManager.getStudentInfo(studentID);
+        String programInfo = getStudentProgramFromDatabase(studentID);
         JLabel studentIDLabel = new JLabel(studentID + " | " + programInfo);
         studentIDLabel.setFont(new Font("Arial", Font.BOLD, 14));
         studentIDLabel.setForeground(new Color(10, 45, 90));
         studentTextPanel.add(studentIDLabel);
         
-        // Student Name - using dynamic data
-        String studentName = "Sherlie O. Rivera"; // Default student name
+        // Student Name - using real database data
+        String studentName = studentInfo != null ? studentInfo.getFullName() : "STUDENT NAME NOT FOUND";
         JLabel studentNameLabel = new JLabel(studentName);
         studentNameLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         studentNameLabel.setForeground(new Color(10, 45, 90));
