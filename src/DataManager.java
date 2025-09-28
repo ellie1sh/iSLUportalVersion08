@@ -71,8 +71,8 @@ public class DataManager {
             try (BufferedReader reader = new BufferedReader(new FileReader(databaseFile))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    // Skip empty lines
-                    if (line.trim().isEmpty()) {
+                    // Skip empty lines and header lines
+                    if (line.trim().isEmpty() || line.startsWith("===") || line.startsWith("Format:") || line.startsWith("ProfileData Format:")) {
                         continue;
                     }
                     
@@ -113,8 +113,8 @@ public class DataManager {
             try (BufferedReader reader = new BufferedReader(new FileReader(databaseFile))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    // Skip empty lines
-                    if (line.trim().isEmpty()) {
+                    // Skip empty lines and header lines
+                    if (line.trim().isEmpty() || line.startsWith("===") || line.startsWith("Format:") || line.startsWith("ProfileData Format:")) {
                         continue;
                     }
                     
@@ -291,8 +291,8 @@ public class DataManager {
             try (BufferedReader reader = new BufferedReader(new FileReader(databaseFile))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    // Skip empty lines
-                    if (line.trim().isEmpty()) {
+                    // Skip empty lines and header lines
+                    if (line.trim().isEmpty() || line.startsWith("===") || line.startsWith("Format:") || line.startsWith("ProfileData Format:")) {
                         continue;
                     }
                     
