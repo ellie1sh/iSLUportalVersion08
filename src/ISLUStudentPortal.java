@@ -5,14 +5,18 @@ import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.RoundRectangle2D;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.io.File;
+import java.io.IOException;
+import java.awt.Desktop;
 import javax.swing.Timer;
+import java.awt.print.PrinterException;
+import java.util.List;
 
 public class ISLUStudentPortal extends JFrame {
     private JPanel mainPanel;
@@ -156,9 +160,8 @@ public class ISLUStudentPortal extends JFrame {
         headerSeparator.setPreferredSize(new Dimension(0, 2));
 
         // Logo section
-        JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        logoPanel.setOpaque(false); // Make panel transparent to preserve logo transparency
-        logoPanel.setBorder(new EmptyBorder(5, 10, 5, 10)); // Add some padding
+        JPanel logoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        logoPanel.setBackground(new Color(52, 73, 94));
         
         // Load InsideLogo.png image
         JLabel logoLabel = new JLabel();
@@ -167,21 +170,10 @@ public class ISLUStudentPortal extends JFrame {
             if (logoUrl != null) {
                 ImageIcon originalIcon = new ImageIcon(logoUrl);
                 Image originalImage = originalIcon.getImage();
-                
-                // Calculate proper scaling to fit in header without cutting
-                int maxHeight = 30; // Smaller size for better fit
-                int originalWidth = originalIcon.getIconWidth();
-                int originalHeight = originalIcon.getIconHeight();
-                
-                // Calculate width to maintain aspect ratio
-                int scaledWidth = (int) ((double) originalWidth * maxHeight / originalHeight);
-                
-                // Scale the image maintaining aspect ratio
-                Image scaledImage = originalImage.getScaledInstance(scaledWidth, maxHeight, Image.SCALE_SMOOTH);
+                // Scale the image to appropriate size (height of about 40px to fit in header)
+                Image scaledImage = originalImage.getScaledInstance(-1, 40, Image.SCALE_SMOOTH);
                 ImageIcon scaledIcon = new ImageIcon(scaledImage);
                 logoLabel.setIcon(scaledIcon);
-                logoLabel.setVerticalAlignment(SwingConstants.TOP); // Align to top
-                logoLabel.setHorizontalAlignment(SwingConstants.LEFT); // Align to left
             } else {
                 // Fallback to text if image not found
                 logoLabel.setText("iSLU");
@@ -210,12 +202,6 @@ public class ISLUStudentPortal extends JFrame {
         logoutButton.setBackground(new Color(220, 53, 69));
         logoutButton.setForeground(Color.WHITE);
         logoutButton.setBorderPainted(false);
-        logoutButton.setFocusPainted(false); // Remove focus outline
-        logoutButton.setContentAreaFilled(false); // Remove default button background
-        logoutButton.setOpaque(true); // Make sure background color shows
-        logoutButton.setHorizontalAlignment(SwingConstants.CENTER); // Center text horizontally
-        logoutButton.setVerticalAlignment(SwingConstants.TOP); // Move text slightly up
-        logoutButton.setBorder(new EmptyBorder(2, 8, 6, 8)); // Add padding to move text up
         logoutButton.addActionListener(e -> {
             // Dispose current student portal window
             dispose();
@@ -665,7 +651,7 @@ public class ISLUStudentPortal extends JFrame {
                 contentPanel.add(createJournalPeriodicalPanel(item.getSubItems()));
                 break;
             case "📅 Schedule":
-                contentPanel.add(showScheduleContent(item.getSubItems()));
+                contentPanel.add(createClassChecklistPanel());
                 break;
             case "📌 Attendance":
                 contentPanel.add(showAttendanceContent(item.getSubItems()));
@@ -699,95 +685,965 @@ public class ISLUStudentPortal extends JFrame {
         contentPanel.repaint();
 
     }
-    // Journal/Periodical Panel
+    // Journal/Periodical Panel with Enhanced Search Functionality
     private JPanel createJournalPeriodicalPanel(MySinglyLinkedList<String> subItems) {
         JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBackground(new Color(240, 240, 240));
 
-        // Header
-        JPanel header = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 15));
-        header.setBackground(Color.WHITE);
+        // Create the main content wrapper
+        JPanel contentWrapper = new JPanel(new BorderLayout());
+        contentWrapper.setBackground(Color.WHITE);
+        contentWrapper.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
+        
+        // Blue header with title
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(new Color(0, 51, 153)); // SLU Blue
+        titlePanel.setLayout(new GridBagLayout());
+        titlePanel.setPreferredSize(new Dimension(0, 80));
+        
+        // Title text
+        JPanel titleTextPanel = new JPanel();
+        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
+        titleTextPanel.setBackground(new Color(0, 51, 153));
+        
+        JLabel titleLine1 = new JLabel("SAINT LOUIS UNIVERSITY LIBRARIES");
+        titleLine1.setFont(new Font("Arial", Font.BOLD, 24));
+        titleLine1.setForeground(Color.WHITE);
+        titleLine1.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        JLabel titleLine2 = new JLabel("PERIODICAL ARTICLE INDEXES");
+        titleLine2.setFont(new Font("Arial", Font.BOLD, 18));
+        titleLine2.setForeground(Color.WHITE);
+        titleLine2.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        titleTextPanel.add(titleLine1);
+        titleTextPanel.add(Box.createVerticalStrut(5));
+        titleTextPanel.add(titleLine2);
+        
+        titlePanel.add(titleTextPanel);
+        contentWrapper.add(titlePanel, BorderLayout.NORTH);
+
+        // Get sample articles
+        List<JournalArticle> allArticles = JournalArticle.getSampleArticles();
+
+        // Create CardLayout for switching between default view and search results
+        CardLayout cardLayout = new CardLayout();
+        JPanel cardPanel = new JPanel(cardLayout);
+        cardPanel.setBackground(Color.WHITE);
+
+        // Default content panel (instructions)
+        JPanel defaultPanel = createDefaultJournalContent();
+        
+        // Search results panel
+        JPanel searchResultsPanel = new JPanel(new BorderLayout());
+        searchResultsPanel.setBackground(Color.WHITE);
+        
+        cardPanel.add(defaultPanel, "default");
+        cardPanel.add(searchResultsPanel, "results");
+
+        // Search section
+        JPanel searchPanel = new JPanel();
+        searchPanel.setBackground(Color.WHITE);
+        searchPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 20));
+        searchPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
 
         JTextField searchField = new JTextField();
-        searchField.setPreferredSize(new Dimension(520, 28));
+        searchField.setPreferredSize(new Dimension(480, 35));
+        searchField.setFont(new Font("Arial", Font.PLAIN, 14));
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(180, 180, 180)),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
 
         JButton searchButton = new JButton("Search");
+        searchButton.setPreferredSize(new Dimension(100, 35));
+        searchButton.setBackground(new Color(240, 240, 240));
+        searchButton.setFocusPainted(false);
+        searchButton.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180)));
+        searchButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
         JButton advancedButton = new JButton("Advance Search");
+        advancedButton.setPreferredSize(new Dimension(140, 35));
+        advancedButton.setBackground(new Color(240, 240, 240));
+        advancedButton.setFocusPainted(false);
+        advancedButton.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180)));
+        advancedButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        header.add(searchField);
-        header.add(searchButton);
-        header.add(advancedButton);
+        // Print button (initially hidden)
+        JButton printButton = new JButton("🖨 Print");
+        printButton.setPreferredSize(new Dimension(80, 35));
+        printButton.setBackground(new Color(240, 240, 240));
+        printButton.setFocusPainted(false);
+        printButton.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180)));
+        printButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        printButton.setVisible(false);
 
-        mainPanel.add(header, BorderLayout.NORTH);
+        // Search again button (initially hidden)
+        JButton searchAgainButton = new JButton("Search again");
+        searchAgainButton.setPreferredSize(new Dimension(110, 35));
+        searchAgainButton.setBackground(new Color(240, 240, 240));
+        searchAgainButton.setFocusPainted(false);
+        searchAgainButton.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180)));
+        searchAgainButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        searchAgainButton.setVisible(false);
 
-        // Body copy mirroring the reference
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+        searchPanel.add(advancedButton);
+        searchPanel.add(searchAgainButton);
+        searchPanel.add(printButton);
+
+        // Store current search results for printing
+        final List<JournalArticle>[] currentSearchResults = new List[]{new ArrayList<>()};
+        final String[] currentSearchTerm = new String[]{""};        
+
+        // Search functionality
+        Runnable performSearch = () -> {
+            String searchTerm = searchField.getText().trim();
+            
+            if (searchTerm.isEmpty()) {
+                cardLayout.show(cardPanel, "default");
+                searchButton.setVisible(true);
+                advancedButton.setVisible(true);
+                searchAgainButton.setVisible(false);
+                printButton.setVisible(false);
+                return;
+            }
+
+            // Filter articles based on search term (case-insensitive)
+            List<JournalArticle> searchResults = new ArrayList<>();
+            for (JournalArticle article : allArticles) {
+                if (article.matchesSearch(searchTerm)) {
+                    searchResults.add(article);
+                }
+            }
+            
+            // Store results for printing
+            currentSearchResults[0] = searchResults;
+            currentSearchTerm[0] = searchTerm;
+
+            // Update search results panel
+            searchResultsPanel.removeAll();
+            searchResultsPanel.add(createSearchResultsContent(searchTerm, searchResults), BorderLayout.CENTER);
+            searchResultsPanel.revalidate();
+            searchResultsPanel.repaint();
+
+            // Show results and update buttons - Search Again should remain visible
+            cardLayout.show(cardPanel, "results");
+            searchButton.setVisible(false);
+            advancedButton.setVisible(false);
+            searchAgainButton.setVisible(true);  // Always visible after search
+            printButton.setVisible(true);
+        };
+
+        // Add action listeners
+        searchButton.addActionListener(e -> performSearch.run());
+        searchField.addActionListener(e -> performSearch.run());
+
+        searchAgainButton.addActionListener(e -> {
+            searchField.setText("");
+            cardLayout.show(cardPanel, "default");
+            searchButton.setVisible(true);
+            advancedButton.setVisible(true);
+            searchAgainButton.setVisible(false);
+            printButton.setVisible(false);
+            searchField.requestFocus();
+        });
+
+        advancedButton.addActionListener(e -> {
+            // Create Advanced Search Dialog
+            JDialog advancedDialog = new JDialog(this, "Advanced Search", true);
+            advancedDialog.setSize(500, 400);
+            advancedDialog.setLocationRelativeTo(this);
+            
+            JPanel advPanel = new JPanel(new GridBagLayout());
+            advPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            gbc.insets = new Insets(5, 5, 5, 5);
+            
+            // Title field
+            gbc.gridx = 0; gbc.gridy = 0;
+            advPanel.add(new JLabel("Title Contains:"), gbc);
+            gbc.gridx = 1;
+            JTextField titleField = new JTextField(20);
+            advPanel.add(titleField, gbc);
+            
+            // Author field
+            gbc.gridx = 0; gbc.gridy = 1;
+            advPanel.add(new JLabel("Author Contains:"), gbc);
+            gbc.gridx = 1;
+            JTextField authorField = new JTextField(20);
+            advPanel.add(authorField, gbc);
+            
+            // Journal field
+            gbc.gridx = 0; gbc.gridy = 2;
+            advPanel.add(new JLabel("Journal Name:"), gbc);
+            gbc.gridx = 1;
+            JTextField journalField = new JTextField(20);
+            advPanel.add(journalField, gbc);
+            
+            // Publication Type dropdown
+            gbc.gridx = 0; gbc.gridy = 3;
+            advPanel.add(new JLabel("Publication Type:"), gbc);
+            gbc.gridx = 1;
+            String[] types = {"All", "BIOGRAPHY", "TOURISM RESEARCH", "TRAVEL DECISION MAKING", 
+                            "CULTURAL HERITAGE", "DIGITAL TRANSFORMATION", "PANDEMIC"};
+            JComboBox<String> typeCombo = new JComboBox<>(types);
+            advPanel.add(typeCombo, gbc);
+            
+            // Year range
+            gbc.gridx = 0; gbc.gridy = 4;
+            advPanel.add(new JLabel("Year From:"), gbc);
+            gbc.gridx = 1;
+            JTextField yearFromField = new JTextField(10);
+            advPanel.add(yearFromField, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 5;
+            advPanel.add(new JLabel("Year To:"), gbc);
+            gbc.gridx = 1;
+            JTextField yearToField = new JTextField(10);
+            advPanel.add(yearToField, gbc);
+            
+            // Buttons
+            JPanel buttonPanel = new JPanel();
+            JButton searchAdvButton = new JButton("Search");
+            JButton cancelButton = new JButton("Cancel");
+            
+            searchAdvButton.addActionListener(evt -> {
+                // Perform advanced search
+                List<JournalArticle> searchResults = new ArrayList<>();
+                for (JournalArticle article : allArticles) {
+                    if (article.matchesAdvancedSearch(
+                            titleField.getText(),
+                            authorField.getText(),
+                            journalField.getText(),
+                            yearFromField.getText(),
+                            yearToField.getText(),
+                            (String) typeCombo.getSelectedItem())) {
+                        searchResults.add(article);
+                    }
+                }
+                
+                // Update results
+                String searchDesc = "Advanced Search";
+                currentSearchResults[0] = searchResults;
+                currentSearchTerm[0] = searchDesc;
+                
+                searchResultsPanel.removeAll();
+                searchResultsPanel.add(createSearchResultsContent(searchDesc, searchResults), BorderLayout.CENTER);
+                searchResultsPanel.revalidate();
+                searchResultsPanel.repaint();
+                
+                cardLayout.show(cardPanel, "results");
+                searchButton.setVisible(false);
+                advancedButton.setVisible(false);
+                searchAgainButton.setVisible(true);
+                printButton.setVisible(true);
+                
+                advancedDialog.dispose();
+            });
+            
+            cancelButton.addActionListener(evt -> advancedDialog.dispose());
+            
+            buttonPanel.add(searchAdvButton);
+            buttonPanel.add(cancelButton);
+            
+            gbc.gridx = 0; gbc.gridy = 6;
+            gbc.gridwidth = 2;
+            advPanel.add(buttonPanel, gbc);
+            
+            advancedDialog.add(advPanel);
+            advancedDialog.setVisible(true);
+        });
+
+        printButton.addActionListener(e -> {
+            // Implement actual printing
+            if (currentSearchResults[0] == null || currentSearchResults[0].isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No results to print.", "Print", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            try {
+                // Create a printable text representation
+                StringBuilder printContent = new StringBuilder();
+                printContent.append("SAINT LOUIS UNIVERSITY LIBRARIES\n");
+                printContent.append("PERIODICAL ARTICLE INDEXES\n");
+                printContent.append("================================\n\n");
+                printContent.append("Search Results for: ").append(currentSearchTerm[0]).append("\n");
+                printContent.append("Date: ").append(new java.util.Date()).append("\n");
+                printContent.append("Total Results: ").append(currentSearchResults[0].size()).append("\n\n");
+                
+                int count = 1;
+                for (JournalArticle article : currentSearchResults[0]) {
+                    printContent.append(count++).append(". ").append(article.getTitle()).append("\n");
+                    if (article.getPublicationType() != null) {
+                        printContent.append("   Type: ").append(article.getPublicationType()).append("\n");
+                    }
+                    printContent.append("   Authors: ").append(article.getAuthors()).append("\n");
+                    printContent.append("   Journal: ").append(article.getJournalName()).append("\n");
+                    printContent.append("   Volume: ").append(article.getVolume())
+                                .append(", Issue: ").append(article.getIssue())
+                                .append(", Pages: ").append(article.getPages()).append("\n");
+                    printContent.append("   Date: ").append(article.getDate()).append("\n\n");
+                }
+                
+                // Create a text area with the content
+                JTextArea printArea = new JTextArea(printContent.toString());
+                printArea.setFont(new Font("Monospaced", Font.PLAIN, 10));
+                
+                // Use Java's print service
+                try {
+                    boolean printed = printArea.print();
+                    if (printed) {
+                        JOptionPane.showMessageDialog(this, "Print job sent successfully!", 
+                                                    "Print", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                } catch (java.awt.print.PrinterException ex) {
+                    JOptionPane.showMessageDialog(this, 
+                        "Error printing: " + ex.getMessage(), 
+                        "Print Error", JOptionPane.ERROR_MESSAGE);
+                }
+                
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, 
+                    "Error preparing print: " + ex.getMessage(), 
+                    "Print Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        // Content body wrapper
+        JPanel bodyWrapper = new JPanel(new BorderLayout());
+        bodyWrapper.setBackground(Color.WHITE);
+        bodyWrapper.add(searchPanel, BorderLayout.NORTH);
+        bodyWrapper.add(cardPanel, BorderLayout.CENTER);
+        
+        contentWrapper.add(bodyWrapper, BorderLayout.CENTER);
+        
+        // Add the content wrapper to main panel with padding
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        mainPanel.add(contentWrapper, BorderLayout.CENTER);
+
+        return mainPanel;
+    }
+
+    // Helper method to create default journal content
+    private JPanel createDefaultJournalContent() {
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
         body.setBackground(Color.WHITE);
-        body.setBorder(BorderFactory.createEmptyBorder(10, 40, 10, 40));
+        body.setBorder(BorderFactory.createEmptyBorder(10, 40, 30, 40));
 
-        JLabel title1 = new JLabel(subItems.getFirst());
-        title1.setFont(new Font("Arial", Font.BOLD, 12));
-        title1.setMaximumSize(new Dimension(Integer.MAX_VALUE, title1.getPreferredSize().height));
-        title1.setHorizontalAlignment(SwingConstants.LEFT);
+        // WHAT ARE JOURNAL INDEXES?
+        JLabel title1 = new JLabel("WHAT ARE JOURNAL INDEXES?");
+        title1.setFont(new Font("Arial", Font.BOLD, 13));
+        title1.setForeground(new Color(50, 50, 50));
         title1.setAlignmentX(Component.LEFT_ALIGNMENT);
         body.add(title1);
-
+        body.add(Box.createVerticalStrut(8));
 
         JTextArea text1 = new JTextArea("An index is a list of items pulled together for a purpose. Journal indexes (also called bibliographic indexes or bibliographic databases) are lists of journals, organized by discipline, subject, or type of publication.");
         text1.setWrapStyleWord(true);
         text1.setLineWrap(true);
         text1.setEditable(false);
         text1.setBackground(Color.WHITE);
+        text1.setFont(new Font("Arial", Font.PLAIN, 12));
+        text1.setForeground(new Color(70, 70, 70));
         text1.setBorder(null);
         text1.setAlignmentX(Component.LEFT_ALIGNMENT);
         body.add(text1);
-        body.add(Box.createVerticalStrut(10));
+        body.add(Box.createVerticalStrut(20));
 
-
-        JLabel title2 = new JLabel(subItems.get(1));
-        title2.setFont(new Font("Arial", Font.BOLD, 12));
-        title2.setMaximumSize(new Dimension(Integer.MAX_VALUE, title2.getPreferredSize().height));
-        title2.setHorizontalAlignment(SwingConstants.LEFT);
+        // THE SLU LIBRARIES' PERIODICAL ARTICLE INDEXES
+        JLabel title2 = new JLabel("THE SLU LIBRARIES' PERIODICAL ARTICLE INDEXES");
+        title2.setFont(new Font("Arial", Font.BOLD, 13));
+        title2.setForeground(new Color(50, 50, 50));
         title2.setAlignmentX(Component.LEFT_ALIGNMENT);
         body.add(title2);
+        body.add(Box.createVerticalStrut(8));
 
         JTextArea text2 = new JTextArea("One of the Home Library Services that the University Libraries offer is the Periodical Article Indexes where the subscribed print journals are being indexed and can be accessed through an online bibliographic database.\n\nThe Periodical Article Indexes database provides access to periodical articles by subject or author and it can help you find articles about a specific topic.");
         text2.setWrapStyleWord(true);
         text2.setLineWrap(true);
         text2.setEditable(false);
         text2.setBackground(Color.WHITE);
+        text2.setFont(new Font("Arial", Font.PLAIN, 12));
+        text2.setForeground(new Color(70, 70, 70));
         text2.setBorder(null);
         text2.setAlignmentX(Component.LEFT_ALIGNMENT);
         body.add(text2);
-        body.add(Box.createVerticalStrut(10));
+        body.add(Box.createVerticalStrut(20));
 
-        JLabel title3 = new JLabel(subItems.get(2));
-        title3.setFont(new Font("Arial", Font.BOLD, 12));
-        title3.setMaximumSize(new Dimension(Integer.MAX_VALUE, title3.getPreferredSize().height));
-        title3.setHorizontalAlignment(SwingConstants.LEFT);
+        // STEPS IN ACCESSING THE PERIODICAL ARTICLE INDEXES
+        JLabel title3 = new JLabel("STEPS IN ACCESSING THE PERIODICAL ARTICLE INDEXES");
+        title3.setFont(new Font("Arial", Font.BOLD, 13));
+        title3.setForeground(new Color(50, 50, 50));
         title3.setAlignmentX(Component.LEFT_ALIGNMENT);
         body.add(title3);
+        body.add(Box.createVerticalStrut(8));
 
-        JTextArea steps = new JTextArea(
-                "1. Enter your topic on the search box and click Search\n" +
-                        "2. You will see the various bibliographic details (i.e. title of the journal, the specific date, volume and issue, and page numbers for the article) that contain your topic.\n" +
-                        "3. Should you opt to read the full text of the article, you may request it by sending an email to uldir@slu.edu.ph"
-        );
-        steps.setWrapStyleWord(true);
-        steps.setLineWrap(true);
-        steps.setEditable(false);
-        steps.setBackground(Color.WHITE);
-        steps.setBorder(null);
-        steps.setAlignmentX(Component.LEFT_ALIGNMENT);
-        body.add(steps);
+        // Create formatted steps with proper indentation
+        JPanel stepsPanel = new JPanel();
+        stepsPanel.setLayout(new BoxLayout(stepsPanel, BoxLayout.Y_AXIS));
+        stepsPanel.setBackground(Color.WHITE);
+        stepsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        String[] steps = {
+            "1.  Enter your topic on the search box and click Search",
+            "2.  You will see the various bibliographic details (i.e. title of the journal, the specific date, volume and issue, and page numbers for the article) that contain your topic.",
+            "3.  Should you opt to read the full text of the article, you may request it by sending an email to uldir@slu.edu.ph"
+        };
+        
+        for (String step : steps) {
+            JTextArea stepText = new JTextArea(step);
+            stepText.setWrapStyleWord(true);
+            stepText.setLineWrap(true);
+            stepText.setEditable(false);
+            stepText.setBackground(Color.WHITE);
+            stepText.setFont(new Font("Arial", Font.PLAIN, 12));
+            stepText.setForeground(new Color(70, 70, 70));
+            stepText.setBorder(BorderFactory.createEmptyBorder(0, 15, 8, 0));
+            stepText.setAlignmentX(Component.LEFT_ALIGNMENT);
+            stepsPanel.add(stepText);
+        }
+        
+        body.add(stepsPanel);
 
         JScrollPane scroll = new JScrollPane(body);
         scroll.setBorder(null);
         scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        mainPanel.add(scroll, BorderLayout.CENTER);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(Color.WHITE);
+        wrapper.add(scroll, BorderLayout.CENTER);
+        
+        return wrapper;
+    }
 
-        return mainPanel;
+    // Helper method to create search results content
+    private JPanel createSearchResultsContent(String searchTerm, List<JournalArticle> results) {
+        JPanel resultsPanel = new JPanel();
+        resultsPanel.setLayout(new BoxLayout(resultsPanel, BoxLayout.Y_AXIS));
+        resultsPanel.setBackground(new Color(245, 245, 245));
+        resultsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Results header
+        JLabel resultsLabel = new JLabel("Journals/Periodicals Search Result:");
+        resultsLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        resultsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        resultsPanel.add(resultsLabel);
+        resultsPanel.add(Box.createVerticalStrut(15));
+
+        if (results.isEmpty()) {
+            JLabel noResultsLabel = new JLabel("No results found for \"" + searchTerm + "\"");
+            noResultsLabel.setFont(new Font("Arial", Font.ITALIC, 14));
+            noResultsLabel.setForeground(new Color(100, 100, 100));
+            noResultsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            resultsPanel.add(noResultsLabel);
+        } else {
+            // Display each result
+            for (JournalArticle article : results) {
+                JPanel articlePanel = createArticlePanel(article);
+                articlePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                resultsPanel.add(articlePanel);
+                resultsPanel.add(Box.createVerticalStrut(12));
+            }
+        }
+
+        JScrollPane scrollPane = new JScrollPane(resultsPanel);
+        scrollPane.setBorder(null);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(Color.WHITE);
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+        
+        return wrapper;
+    }
+
+    // Helper method to create individual article panel
+    private JPanel createArticlePanel(JournalArticle article) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(220, 220, 220)),
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
+
+        // Title and keywords
+        JLabel titleLabel = new JLabel(article.getTitle());
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 11));
+        titleLabel.setForeground(new Color(0, 51, 153));
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(titleLabel);
+
+        if (article.getPublicationType() != null && !article.getPublicationType().isEmpty()) {
+            JLabel typeLabel = new JLabel(article.getPublicationType());
+            typeLabel.setFont(new Font("Arial", Font.PLAIN, 10));
+            typeLabel.setForeground(new Color(100, 100, 100));
+            typeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            panel.add(typeLabel);
+        }
+
+        panel.add(Box.createVerticalStrut(5));
+
+        // Authors
+        JLabel authorsLabel = new JLabel(article.getAuthors());
+        authorsLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        authorsLabel.setForeground(new Color(50, 50, 50));
+        authorsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(authorsLabel);
+
+        panel.add(Box.createVerticalStrut(3));
+
+        // Journal details
+        String journalDetails = article.getJournalName();
+        if (article.getVolume() != null && article.getIssue() != null) {
+            journalDetails += " / " + article.getAuthors() + ". ";
+        }
+        
+        JLabel journalLabel = new JLabel(journalDetails);
+        journalLabel.setFont(new Font("Arial", Font.ITALIC, 11));
+        journalLabel.setForeground(new Color(70, 70, 70));
+        journalLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(journalLabel);
+
+        // Current Issues link
+        if (article.isCurrentIssue()) {
+            JLabel currentIssueLabel = new JLabel("<html><u>Current Issues in Tourism</u></html>");
+            currentIssueLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+            currentIssueLabel.setForeground(new Color(0, 51, 153));
+            currentIssueLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            currentIssueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            panel.add(currentIssueLabel);
+        }
+
+        // Volume and page info
+        String volumeInfo = "v." + article.getVolume() + ", no." + article.getIssue() + 
+                           " (" + article.getDate() + ") : pp. " + article.getPages();
+        JLabel volumeLabel = new JLabel(volumeInfo);
+        volumeLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        volumeLabel.setForeground(new Color(70, 70, 70));
+        volumeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(volumeLabel);
+
+        return panel;
+    }
+    /**
+     * Creates the Class Checklist panel which contains:
+     *  - Current Load table (top)
+     *  - Weekly View (bottom) auto-generated from the table (non-interactive)
+     *
+     * The mock class data is provided by getMockClasses()
+     */
+    private JPanel createClassChecklistPanel() {
+        JPanel wrapper = new JPanel(new BorderLayout(10, 10));
+        wrapper.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        // Title
+        JLabel title = new JLabel("CLASS SCHEDULE", SwingConstants.LEFT);
+        title.setFont(new Font("Arial", Font.BOLD, 20));
+        wrapper.add(title, BorderLayout.NORTH);
+
+        // Fetch mock classes (editable in one place)
+        List<ClassInfo> classes = getMockClasses();
+        JPanel tablePanel = createClassScheduleTable();
+
+
+        // Weekly View panel (custom painter)
+        WeeklyViewPanel weeklyView = new WeeklyViewPanel(classes);
+
+        // Combine table (top) and weekly view (below) in vertical layout with scroll
+        JPanel combined = new JPanel();
+        combined.setLayout(new BoxLayout(combined, BoxLayout.Y_AXIS));
+        combined.add(new JScrollPane(tablePanel));
+        combined.add(Box.createRigidArea(new Dimension(0, 12)));
+        combined.add(weeklyView);
+
+        // Wrap with a scroll pane so both are scrollable together if height exceeds window
+        JScrollPane combinedScroll = new JScrollPane(combined,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        combinedScroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        wrapper.add(combinedScroll, BorderLayout.CENTER);
+
+        return wrapper;
+    }
+
+    /**
+     * Mock class data center (edit this method to add/remove mock classes)
+     *
+     * Format per ClassInfo:
+     *   ClassInfo(classCode, courseNo, description, units, startTimeStr, endTimeStr, daysList, room, studentCount)
+     *
+     * Days are strings: "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+     */
+    private List<ClassInfo> getMockClasses() {
+        List<ClassInfo> list = new ArrayList<>();
+
+        // ===== MOCK CLASS DATA (edit here) =====
+        // Note: times are in 12-hour format with AM/PM, days are standard names.
+        list.add(new ClassInfo("7024", "NSTP-CWTS 1",
+                "TFOUNDATIONS OF SERVICE", 3,
+                "1:30 PM", "2:30 PM",
+                Arrays.asList("Mon","Wed","Fri"), "D906"));
+
+        list.add(new ClassInfo("9454", "GSTS",
+                "SCIENCE, TECHNOLOGY, AND SOCIETY", 3,
+                "9:30 AM", "10:30 AM",
+                Arrays.asList("Tue","Thu","Sat"), "D504"));
+
+        list.add(new ClassInfo("9455", "GENVI",
+                "ENVIRONMENTAL SCIENCE", 3,
+                "9:30 AM", "10:30 AM",
+                Arrays.asList("Mon","Wed","Fri"), "D503"));
+
+        list.add(new ClassInfo("9456", "CFE 103",
+                "CATHOLIC FOUNDATION OF MISSION", 3,
+                "1:30 PM", "2:30 PM",
+                Arrays.asList("Tue","Thu","Sat"), "D503"));
+
+        list.add(new ClassInfo("9457", "IT 211",
+                "REQUIREMENTS ANALYSIS AND MODELING", 3,
+                "10:30 AM", "11:30 AM",
+                Arrays.asList("Mon","Wed","Fri"), "D511"));
+
+        list.add(new ClassInfo("9458A", "IT 212",
+                "DATA STRUCTURES (LEC)", 2,
+                "2:30 PM", "3:30 PM",
+                Arrays.asList("Tue","Fri"), "D513"));
+
+        list.add(new ClassInfo("9458B", "IT 212L",
+                "DATA STRUCTURES (LAB)", 1,
+                "4:00 PM", "5:30 PM",
+                Arrays.asList("Tue","Fri"), "D522"));
+
+        list.add(new ClassInfo("9459A", "IT 213",
+                "NETWORK FUNDAMENTALS (LEC)", 2,
+                "8:30 AM", "9:30 AM",
+                Arrays.asList("Tue","Fri"), "D513"));
+
+        list.add(new ClassInfo("9459B", "IT 213L",
+                "NETWORK FUNDAMENTALS (LAB)", 1,
+                "11:30 AM", "1:00 PM",
+                Arrays.asList("Tue","Fri"), "D528"));
+
+        list.add(new ClassInfo("9547", "FIT OA",
+                "PHYSICAL ACTIVITY TOWARDS HEALTH AND FITNESS (OUTDOOR AND ADVENTURE ACTIVITIES)", 2,
+                "3:30 PM", "5:30 PM",
+                Arrays.asList("Thu"), "D221"));
+        // ===== MOCK CLASS DATA END =====
+
+        return list;
+    }
+
+    /**
+     * Helper class to store class information (small structured object)
+     */
+    private static class ClassInfo {
+        String classCode;
+        String courseNo;
+        String description;
+        int units;
+        String startTime; // "7:30 AM"
+        String endTime;   // "9:00 PM"
+        List<String> days; // e.g., ["Mon","Wed","Fri"]
+        String room;
+        int studentCount;
+
+        ClassInfo(String classCode, String courseNo, String description, int units,
+                  String startTime, String endTime, List<String> days, String room) {
+            this.classCode = classCode;
+            this.courseNo = courseNo;
+            this.description = description;
+            this.units = units;
+            this.startTime = startTime;
+            this.endTime = endTime;
+            this.days = days;
+            this.room = room;
+        }
+    }
+
+    /**
+     * Custom panel that paints the weekly grid and class blocks.
+     * Non-interactive, auto-generated from the list of ClassInfo.
+     */
+    private static class WeeklyViewPanel extends JPanel {
+
+        private final java.util.List<ClassInfo> classes;
+        private final SimpleDateFormat parseFormat = new SimpleDateFormat("h:mm a");
+        private final String[] dayNames = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+
+        // Grid parameters
+        private final int startHour = 7;   // 7:00 AM
+        private final int endHour = 21;    // 9:00 PM
+        private final int slotMinutes = 30; // 30-minute increments
+
+        // Visual parameters
+        private final int timeColWidth = 80;
+        private final int headerHeight = 30;
+        private final int cellHeight = 28;
+        private final int leftPadding = 10;
+        private final int rightPadding = 10;
+
+        WeeklyViewPanel(List<ClassInfo> classes) {
+            this.classes = classes;
+            setPreferredSize(new Dimension(900, computePreferredHeight()));
+            setBackground(Color.WHITE);
+
+        }
+
+        private int computePreferredHeight() {
+            int rows = ((endHour - startHour) * 60) / slotMinutes;
+            // header + rows * cellHeight + some bottom margin
+            return headerHeight + rows * cellHeight + 40;
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int width = getWidth();
+            int height = getHeight();
+
+            // Compute grid metrics
+            int days = 7;
+            int gridX = timeColWidth + leftPadding;
+            int gridWidth = width - gridX - rightPadding;
+            if (gridWidth < 100) gridWidth = 700; // fallback
+            int colWidth = gridWidth / days;
+
+            int rows = ((endHour - startHour) * 60) / slotMinutes;
+
+            // Draw day headers
+            g2.setColor(new Color(245, 245, 245));
+            g2.fillRect(gridX, 0, gridWidth, headerHeight);
+
+            g2.setColor(Color.BLACK);
+            g2.setFont(new Font("Arial", Font.BOLD, 12));
+            for (int d = 0; d < days; d++) {
+                int x = gridX + d * colWidth;
+                String day = dayNames[d];
+                FontMetrics fm = g2.getFontMetrics();
+                int fx = x + (colWidth - fm.stringWidth(day)) / 2;
+                int fy = (headerHeight + fm.getAscent()) / 2 - 2;
+                g2.drawString(day, fx, fy);
+            }
+
+            // Vertical line separating time column and grid
+            g2.setColor(new Color(220, 220, 220));
+            g2.drawLine(gridX - 6, 0, gridX - 6, headerHeight + rows * cellHeight + 2);
+
+            // Draw time labels and horizontal grid lines
+            g2.setFont(new Font("Arial", Font.PLAIN, 11));
+            for (int r = 0; r <= rows; r++) {
+                int y = headerHeight + r * cellHeight;
+                // horizontal grid line
+                g2.setColor(new Color(230, 230, 230));
+                g2.drawLine(gridX, y, gridX + days * colWidth, y);
+
+                if (r < rows) {
+                    // time label for this row (every slotMinutes)
+                    int minutesFromStart = r * slotMinutes;
+                    int hour = startHour + (minutesFromStart / 60);
+                    int minute = minutesFromStart % 60;
+
+                    Calendar cal = Calendar.getInstance();
+                    cal.set(Calendar.HOUR_OF_DAY, hour);
+                    cal.set(Calendar.MINUTE, minute);
+                    String label = formatTo12Hour(cal.get(Calendar.HOUR_OF_DAY), minute);
+
+                    g2.setColor(Color.DARK_GRAY);
+                    FontMetrics fm = g2.getFontMetrics();
+                    int tx = leftPadding + 4;
+                    int ty = y + (cellHeight + fm.getAscent()) / 2 - 3;
+                    g2.drawString(label, tx, ty);
+                }
+            }
+
+            // Draw vertical separators between days
+            g2.setColor(new Color(235, 235, 235));
+            for (int d = 0; d <= days; d++) {
+                int x = gridX + d * colWidth;
+                g2.drawLine(x, headerHeight, x, headerHeight + rows * cellHeight);
+            }
+
+            // Draw each class as a rounded blue rectangle spanning appropriate rows and days
+            for (ClassInfo ci : classes) {
+                // for each day this class occurs on
+                for (String day : ci.days) {
+                    int dayIndex = dayNameToIndex(day);
+                    if (dayIndex < 0) continue; // skip unknown day labels
+
+                    int startMinutes = parseTimeToMinutes(ci.startTime);
+                    int endMinutes = parseTimeToMinutes(ci.endTime);
+
+                    int gridStart = Math.max(0, (startMinutes - startHour * 60) / slotMinutes);
+                    int gridEnd = Math.min(rows, (endMinutes - startHour * 60) / slotMinutes);
+
+                    if (gridEnd <= 0 || gridStart >= rows) {
+                        continue; // out of visible range
+                    }
+
+                    int x = gridX + dayIndex * colWidth + 6;
+                    int y = headerHeight + gridStart * cellHeight + 4;
+                    int w = colWidth - 12;
+                    int h = Math.max(16, (gridEnd - gridStart) * cellHeight - 8);
+
+                    // Draw rounded rectangle
+                    RoundRectangle2D.Double rrect = new RoundRectangle2D.Double(x, y, w, h, 12, 12);
+                    g2.setColor(new Color(38, 112, 201)); // blue
+                    g2.fill(rrect);
+
+                    // Draw text centered
+                    String display = ci.courseNo + " (" + ci.room + ")";
+                    g2.setColor(Color.WHITE);
+                    Font font = new Font("Arial", Font.BOLD, 12);
+                    g2.setFont(font);
+                    drawStringInRect(g2, display, new Rectangle(x + 6, y + 6, w - 12, h - 12));
+                }
+            }
+
+            g2.dispose();
+        }
+
+        private String formatTo12Hour(int hour24, int minute) {
+            String ampm = (hour24 >= 12) ? "PM" : "AM";
+            int hour = hour24 % 12;
+            if (hour == 0) hour = 12;
+            return String.format("%d:%02d %s", hour, minute, ampm);
+        }
+
+        private int dayNameToIndex(String day) {
+            // Accept common variants
+            String d = day.trim().toLowerCase();
+            switch (d) {
+                case "sun":
+                case "sunday":
+                    return 0;
+                case "mon":
+                case "monday":
+                    return 1;
+                case "tue":
+                case "tues":
+                case "tuesday":
+                    return 2;
+                case "wed":
+                case "wednesday":
+                    return 3;
+                case "thu":
+                case "thur":
+                case "thurs":
+                case "thursday":
+                    return 4;
+                case "fri":
+                case "friday":
+                    return 5;
+                case "sat":
+                case "saturday":
+                    return 6;
+                default:
+                    return -1;
+            }
+        }
+
+        private int parseTimeToMinutes(String timeStr) {
+            // Parse "h:mm a" with SimpleDateFormat
+            try {
+                Date d = parseFormat.parse(timeStr);
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(d);
+                int hour = cal.get(Calendar.HOUR);
+                // NOTE: SimpleDateFormat parse gives HOUR in 12-hour clock; need AM/PM separately
+                // A safer approach: parse using a dedicated Calendar with parse, then get HOUR_OF_DAY
+                // We'll re-parse with another format to get HOUR_OF_DAY
+                SimpleDateFormat sdf24 = new SimpleDateFormat("H:mm");
+                String s24 = new SimpleDateFormat("H:mm").format(d);
+                String[] parts = s24.split(":");
+                int h = Integer.parseInt(parts[0]);
+                int m = Integer.parseInt(parts[1]);
+                return h * 60 + m;
+            } catch (ParseException e) {
+                // fallback: attempt manual parse
+                try {
+                    return manualParseTimeToMinutes(timeStr);
+                } catch (Exception ex) {
+                    return 0;
+                }
+            }
+        }
+
+        private int manualParseTimeToMinutes(String timeStr) {
+            // Expected "h:mm AM" or "hh:mm PM"
+            String s = timeStr.trim().toUpperCase();
+            boolean pm = s.endsWith("PM");
+            boolean am = s.endsWith("AM");
+            s = s.replace("AM", "").replace("PM", "").trim();
+            String[] parts = s.split(":");
+            int h = Integer.parseInt(parts[0]);
+            int m = (parts.length > 1) ? Integer.parseInt(parts[1]) : 0;
+            if (pm && h < 12) h += 12;
+            if (am && h == 12) h = 0;
+            return h * 60 + m;
+        }
+
+        private void drawStringInRect(Graphics2D g2, String text, Rectangle rect) {
+            FontMetrics fm = g2.getFontMetrics();
+            // If text too wide, try to wrap on space
+            if (fm.stringWidth(text) <= rect.width) {
+                int tx = rect.x + (rect.width - fm.stringWidth(text)) / 2;
+                int ty = rect.y + (rect.height + fm.getAscent()) / 2 - 2;
+                g2.drawString(text, tx, ty);
+                return;
+            }
+
+            // Try splitting into multiple lines if spaces exist
+            String[] words = text.split(" ");
+            java.util.List<String> lines = new ArrayList<>();
+            StringBuilder cur = new StringBuilder();
+            for (String w : words) {
+                String trial = cur.length() == 0 ? w : cur + " " + w;
+                if (fm.stringWidth(trial) <= rect.width) {
+                    cur = new StringBuilder(trial);
+                } else {
+                    if (cur.length() > 0) {
+                        lines.add(cur.toString());
+                        cur = new StringBuilder(w);
+                    } else {
+                        // single word too long -> truncate
+                        lines.add(truncateToFit(w, fm, rect.width));
+                        cur = new StringBuilder();
+                    }
+                }
+            }
+            if (cur.length() > 0) lines.add(cur.toString());
+
+            int totalHeight = lines.size() * fm.getHeight();
+            int startY = rect.y + (rect.height - totalHeight) / 2 + fm.getAscent() - 2;
+            for (int i = 0; i < lines.size(); i++) {
+                String line = lines.get(i);
+                int tx = rect.x + (rect.width - fm.stringWidth(line)) / 2;
+                int ty = startY + i * fm.getHeight();
+                g2.drawString(line, tx, ty);
+            }
+        }
+
+        private String truncateToFit(String word, FontMetrics fm, int width) {
+            String ell = "...";
+            for (int len = word.length(); len > 0; len--) {
+                String t = word.substring(0, len) + ell;
+                if (fm.stringWidth(t) <= width) return t;
+            }
+            return word;
+        }
     }
     //method for Schedule Content
     private JPanel showScheduleContent(MySinglyLinkedList<String> subItems) {
@@ -2837,18 +3693,7 @@ public class ISLUStudentPortal extends JFrame {
         mainPanel.add(leftPanel, BorderLayout.CENTER);
         mainPanel.add(rightPanel, BorderLayout.EAST);
 
-        // Wrap the main panel in a scroll pane to make the whole page scrollable
-        JScrollPane scrollPane = new JScrollPane(mainPanel);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setBorder(null);
-        scrollPane.getViewport().setBackground(new Color(240, 240, 240));
-        
-        // Create a wrapper panel to return the scrollable content
-        JPanel wrapperPanel = new JPanel(new BorderLayout());
-        wrapperPanel.add(scrollPane, BorderLayout.CENTER);
-        
-        return wrapperPanel;
+        return mainPanel;
     }
 
     private JPanel createStatementLeftPanel(MySinglyLinkedList<String> subItems) {
@@ -2890,98 +3735,163 @@ public class ISLUStudentPortal extends JFrame {
         contentPanel.setBackground(Color.WHITE);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Student Info - Updated to match design exactly
-        JPanel studentInfoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
-        studentInfoPanel.setBackground(new Color(245, 245, 245)); // Light gray background
-        studentInfoPanel.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220), 1));
+        // Student Info
+        JPanel studentInfoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        studentInfoPanel.setBackground(Color.WHITE);
+        studentInfoPanel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
         studentInfoPanel.setPreferredSize(new Dimension(0, 80));
         
-        // Purple person icon
         JLabel studentIcon = new JLabel("👤");
-        studentIcon.setFont(new Font("Arial", Font.PLAIN, 24));
-        studentIcon.setForeground(new Color(128, 0, 128)); // Purple color
+        studentIcon.setFont(new Font("Arial", Font.PLAIN, 20));
         studentInfoPanel.add(studentIcon);
         
         JPanel studentTextPanel = new JPanel();
         studentTextPanel.setLayout(new BoxLayout(studentTextPanel, BoxLayout.Y_AXIS));
-        studentTextPanel.setBackground(new Color(245, 245, 245));
+        studentTextPanel.setBackground(Color.WHITE);
         
-        // Format: "2251834 | BSIT 2"
-        JLabel studentIDLabel = new JLabel(studentID + " | BSIT 2");
+        JLabel studentIDLabel = new JLabel(studentID);
         studentIDLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        studentIDLabel.setForeground(Color.BLACK);
         studentTextPanel.add(studentIDLabel);
         
         JLabel studentNameLabel = new JLabel(studentName);
         studentNameLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        studentNameLabel.setForeground(Color.BLACK);
         studentTextPanel.add(studentNameLabel);
         
         studentInfoPanel.add(studentTextPanel);
         contentPanel.add(studentInfoPanel);
         contentPanel.add(Box.createVerticalStrut(20));
 
-        // Amount Due Section - Updated to match design exactly
+        // Amount Due Section
         JPanel amountPanel = new JPanel();
         amountPanel.setLayout(new BoxLayout(amountPanel, BoxLayout.Y_AXIS));
         amountPanel.setBackground(Color.WHITE);
         
-        // Your amount due for PRELIM
-        JLabel prelimAmountLabel = new JLabel("Your amount due for PRELIM is:");
-        prelimAmountLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        prelimAmountLabel.setForeground(Color.BLACK);
-        amountPanel.add(prelimAmountLabel);
+        // Total Balance Section
+        JLabel totalBalanceLabel = new JLabel("Total Balance Due:");
+        totalBalanceLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        amountPanel.add(totalBalanceLabel);
         
-        // Get the actual amount due from DueBalance.txt database
-        UserBalanceDatabase.initializeUser(studentID); // Ensure user exists in database
-        double prelimAmountDue = UserBalanceDatabase.getAmountDue(studentID);
-        prelimAmountValueLabel = new JLabel(String.format("P %,.2f", prelimAmountDue));
-        prelimAmountValueLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        prelimAmountValueLabel.setForeground(new Color(200, 0, 0)); // Red color
-        amountPanel.add(prelimAmountValueLabel);
+        JLabel totalBalanceValue = new JLabel("P " + String.format("%,.2f", accountStatement.getBalance()));
+        totalBalanceValue.setFont(new Font("Arial", Font.BOLD, 24));
+        totalBalanceValue.setForeground(accountStatement.getBalance() > 0 ? new Color(200, 0, 0) : new Color(0, 150, 0));
+        amountDueValueLabel = totalBalanceValue; // Store reference for updates
+        amountPanel.add(totalBalanceValue);
         amountPanel.add(Box.createVerticalStrut(10));
         
-        // Your remaining balance
-        JLabel remainingBalanceLabel = new JLabel("Your remaining balance as of September 24, 2025 is:");
-        remainingBalanceLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        remainingBalanceLabel.setForeground(Color.BLACK);
-        amountPanel.add(remainingBalanceLabel);
+        // Exam Period Dues
+        JLabel prelimDueLabel = new JLabel("Prelim Exam Due: P " + 
+            String.format("%,.2f", accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.PRELIM)));
+        prelimDueLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        amountPanel.add(prelimDueLabel);
         
-        // Get remaining balance from DueBalance.txt database
-        double remainingBalance = UserBalanceDatabase.getRemainingBalance(studentID);
-        JLabel remainingBalanceValue = new JLabel(String.format("P %,.2f", remainingBalance));
-        remainingBalanceValue.setFont(new Font("Arial", Font.BOLD, 18));
-        remainingBalanceValue.setForeground(new Color(200, 0, 0)); // Red color
-        amountDueValueLabel = remainingBalanceValue; // Store reference for updates
-        amountPanel.add(remainingBalanceValue);
-        amountPanel.add(Box.createVerticalStrut(10));
+        JLabel midtermDueLabel = new JLabel("Midterm Exam Due: P " + 
+            String.format("%,.2f", accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.MIDTERM)));
+        midtermDueLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        amountPanel.add(midtermDueLabel);
         
-        // PRELIM STATUS - Dynamic based on payment status
-        String prelimStatusText;
-        Color prelimStatusColor;
-        if (prelimAmountDue <= 0) {
-            prelimStatusText = "PRELIM STATUS: PAID. Permitted to take the exams.";
-            prelimStatusColor = new Color(0, 150, 0); // Green color for paid
-        } else {
-            prelimStatusText = "PRELIM STATUS: UNPAID. Payment required to take exams.";
-            prelimStatusColor = new Color(200, 0, 0); // Red color for unpaid
-        }
-        
-        prelimStatusLabel = new JLabel(prelimStatusText);
-        prelimStatusLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        prelimStatusLabel.setForeground(prelimStatusColor);
-        amountPanel.add(prelimStatusLabel);
-        amountPanel.add(Box.createVerticalStrut(15));
+        JLabel finalsDueLabel = new JLabel("Finals Exam Due: P " + 
+            String.format("%,.2f", accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.FINALS)));
+        finalsDueLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        amountPanel.add(finalsDueLabel);
         
         contentPanel.add(amountPanel);
-        contentPanel.add(Box.createVerticalStrut(2));
+        contentPanel.add(Box.createVerticalStrut(10));
 
+        // Overpayment Section
+        JPanel overpaymentPanel = new JPanel();
+        overpaymentPanel.setLayout(new BoxLayout(overpaymentPanel, BoxLayout.Y_AXIS));
+        overpaymentPanel.setBackground(Color.WHITE);
+        
+        // Reuse the currentDate and dateFormatter from header, just create new formatted string
+        String currentDateStr = currentDate.format(dateFormatter);
+        
+        if (accountStatement.getOverpayment() > 0) {
+            JLabel overpaymentLabel = new JLabel("Overpayment/Credit Balance as of " + currentDateStr + ":");
+            overpaymentLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+            overpaymentPanel.add(overpaymentLabel);
+            
+            JLabel overpaymentValue = new JLabel("P " + String.format("%,.2f", accountStatement.getOverpayment()));
+            overpaymentValue.setFont(new Font("Arial", Font.BOLD, 20));
+            overpaymentValue.setForeground(new Color(0, 100, 200));
+            overpaymentValueLabel = overpaymentValue; // Store reference for updates
+            overpaymentPanel.add(overpaymentValue);
+        } else {
+            JLabel paymentSummaryLabel = new JLabel("Payment Summary as of " + currentDateStr + ":");
+            paymentSummaryLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+            overpaymentPanel.add(paymentSummaryLabel);
+            
+            JLabel totalAmountLabel = new JLabel("Total Amount: P " + String.format("%,.2f", accountStatement.getTotalAmount()));
+            totalAmountLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+            overpaymentPanel.add(totalAmountLabel);
+            
+            JLabel amountPaidLabel = new JLabel("Amount Paid: P " + String.format("%,.2f", accountStatement.getAmountPaid()));
+            amountPaidLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+            overpaymentPanel.add(amountPaidLabel);
+        }
+        
+        contentPanel.add(overpaymentPanel);
+        contentPanel.add(Box.createVerticalStrut(15));
 
+        // Exam Payment Status Section
+        JPanel examStatusPanel = new JPanel();
+        examStatusPanel.setLayout(new BoxLayout(examStatusPanel, BoxLayout.Y_AXIS));
+        examStatusPanel.setBackground(Color.WHITE);
+        
+        // Use the already declared currentDateStr variable
+        examStatusPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200)),
+            "Exam Payment Status as of " + currentDateStr,
+            javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
+            javax.swing.border.TitledBorder.DEFAULT_POSITION,
+            new Font("Arial", Font.BOLD, 14),
+            new Color(10, 45, 90)
+        ));
+        
+        // Update payment statuses
+        accountStatement.updatePaymentStatuses();
+        
+        // Prelim Status with eligibility message
+        String prelimStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.PRELIM);
+        Color prelimStatusColor = accountStatement.isPrelimPaid() ? 
+            new Color(0, 150, 0) : new Color(200, 0, 0);
+        
+        JLabel prelimStatusLabel = new JLabel(prelimStatusText);
+        prelimStatusLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        prelimStatusLabel.setForeground(prelimStatusColor);
+        this.prelimStatusLabel = prelimStatusLabel;
+        examStatusPanel.add(prelimStatusLabel);
+        examStatusPanel.add(Box.createVerticalStrut(5));
+        
+        // Midterm Status with eligibility message
+        String midtermStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.MIDTERM);
+        Color midtermStatusColor = accountStatement.isMidtermPaid() ? 
+            new Color(0, 150, 0) : new Color(200, 0, 0);
+        
+        JLabel midtermStatusLabel = new JLabel(midtermStatusText);
+        midtermStatusLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        midtermStatusLabel.setForeground(midtermStatusColor);
+        this.midtermStatusLabel = midtermStatusLabel;
+        examStatusPanel.add(midtermStatusLabel);
+        examStatusPanel.add(Box.createVerticalStrut(5));
+        
+        // Finals Status with eligibility message  
+        String finalsStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.FINALS);
+        Color finalsStatusColor = accountStatement.isFinalsPaid() ? 
+            new Color(0, 150, 0) : new Color(200, 0, 0);
+        
+        JLabel finalsStatusLabel = new JLabel(finalsStatusText);
+        finalsStatusLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        finalsStatusLabel.setForeground(finalsStatusColor);
+        this.finalsStatusLabel = finalsStatusLabel;
+        examStatusPanel.add(finalsStatusLabel);
+        
+        contentPanel.add(examStatusPanel);
+        contentPanel.add(Box.createVerticalStrut(20));
 
         // Breakdown of Fees
         JPanel breakdownPanel = createBreakdownPanel();
         contentPanel.add(breakdownPanel);
-        contentPanel.add(Box.createVerticalStrut(2));
+        contentPanel.add(Box.createVerticalStrut(20));
 
         // Online Payment Transactions
         JPanel transactionsPanel = createTransactionsPanel();
@@ -3001,33 +3911,12 @@ public class ISLUStudentPortal extends JFrame {
         headerPanel.setBackground(new Color(10, 45, 90));
         headerPanel.setPreferredSize(new Dimension(0, 40));
         
-        // Get the date of the last transaction (enrollment or payment)
-        String dateStr;
-        if (accountStatement.getPaymentHistory().isEmpty()) {
-            // No payments yet, use enrollment date (current date as fallback)
+        // Get current date
         java.time.LocalDate currentDate = java.time.LocalDate.now();
         java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM dd, yyyy");
-            dateStr = currentDate.format(dateFormatter);
-        } else {
-            // Get the date of the last payment transaction
-            PaymentTransaction lastPayment = accountStatement.getPaymentHistory().get(accountStatement.getPaymentHistory().size() - 1);
-            String paymentDateStr = lastPayment.getDate();
-            
-            // Parse the payment date (format: "MM/dd/yyyy hh:mm a")
-            try {
-                java.time.LocalDateTime paymentDateTime = java.time.LocalDateTime.parse(paymentDateStr, 
-                    java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm a"));
-                java.time.format.DateTimeFormatter displayFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM dd, yyyy");
-                dateStr = paymentDateTime.format(displayFormatter);
-            } catch (Exception e) {
-                // Fallback to current date if parsing fails
-                java.time.LocalDate currentDate = java.time.LocalDate.now();
-                java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM dd, yyyy");
-                dateStr = currentDate.format(dateFormatter);
-            }
-        }
+        String dateStr = currentDate.format(dateFormatter);
         
-        JLabel headerLabel = new JLabel("Breakdown of fees as of " + dateStr);
+        JLabel headerLabel = new JLabel("Fee Breakdown as of " + dateStr);
         headerLabel.setForeground(Color.WHITE);
         headerLabel.setFont(new Font("Arial", Font.BOLD, 14));
         headerPanel.add(headerLabel);
@@ -3038,25 +3927,31 @@ public class ISLUStudentPortal extends JFrame {
         accountStatement.updatePaymentStatuses();
         
         // Table with status column
-        String[] columnNames = {"Date", "Description", "Amount"};
+        String[] columnNames = {"Date", "Description", "Amount", "Status"};
         
         // Get fee breakdowns from account statement
         List<FeeBreakdown> fees = accountStatement.getFeeBreakdowns();
         Object[][] data = new Object[fees.size() + 3][4]; // +3 for header, total, and balance rows, 4 columns
         
-        // Add specific entries to match the design exactly
-        data[0] = new Object[]{"", "BEGINNING BALANCE", "0.00"};
-        data[1] = new Object[]{"08/12/2025", "BPI ONLINE- 2025-08-10 (JV100106)", "(21,177.00)"};
-        data[2] = new Object[]{"09/15/2025", "TUITION FEE @820.00/u", "9,020.00"};
-        data[3] = new Object[]{"09/15/2025", "TUITION FEE @1167.00/u", "10,503.00"};
-        data[4] = new Object[]{"09/15/2025", "TUITION FEE @434.00/u", "1,302.00"};
-        data[5] = new Object[]{"09/15/2025", "OTHER FEES", "6,784.00"};
-        data[6] = new Object[]{"09/15/2025", "OTHER/LAB.FEE(S)", "14,064.00"};
-        data[7] = new Object[]{"09/15/2025", "PMS WaterDrinkingSystem (JV100486)", "60.00"};
-        data[8] = new Object[]{"09/15/2025", "Internationalization Fee (JV100487)", "150.00"};
-        data[9] = new Object[]{"09/25/2025", "BPI ONLINE- 2025-09-23 (JV100615)", "(6,830.00)"};
+        // Add beginning balance row
+        data[0] = new Object[]{"", "ASSESSMENT DETAILS", "", ""};
         
-        int row = 10;
+        // Add fee items with status
+        int row = 1;
+        for (FeeBreakdown fee : fees) {
+            data[row] = fee.toTableRowWithStatus();
+            row++;
+        }
+        
+        // Add total row
+        data[row] = new Object[]{"", "TOTAL ASSESSMENT", String.format("P %,.2f", accountStatement.getTotalAmount()), ""};
+        row++;
+        
+        // Add balance row with current date
+        java.time.format.DateTimeFormatter shortDateFormatter = java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy");
+        String shortDateStr = currentDate.format(shortDateFormatter);
+        String balanceStatus = accountStatement.getBalance() <= 0 ? "FULLY PAID" : "UNPAID";
+        data[row] = new Object[]{shortDateStr, "CURRENT BALANCE", String.format("P %,.2f", accountStatement.getBalance()), balanceStatus};
 
         feeBreakdownTableModel = new DefaultTableModel(data, columnNames) {
             @Override
@@ -3093,21 +3988,57 @@ public class ISLUStudentPortal extends JFrame {
             }
         });
         
-        // Make table expandable to show all content
         JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        
-        // Set reasonable height to fit on screen
-        int rowHeight = table.getRowHeight();
-        int headerHeight = table.getTableHeader().getPreferredSize().height;
-        int contentHeight = headerHeight + (table.getRowCount() * rowHeight);
-        int maxHeight = Math.min(contentHeight, 120); // Limit to 120px max height to give maximum space to payment transactions
-        scrollPane.setPreferredSize(new Dimension(0, maxHeight));
-        scrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, maxHeight));
-        
+        scrollPane.setPreferredSize(new Dimension(0, 250));
         panel.add(scrollPane, BorderLayout.CENTER);
         
+        // Add exam eligibility indicator panel
+        JPanel eligibilityPanel = new JPanel();
+        eligibilityPanel.setLayout(new BoxLayout(eligibilityPanel, BoxLayout.Y_AXIS));
+        eligibilityPanel.setBackground(new Color(245, 245, 245));
+        eligibilityPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Title
+        JLabel eligibilityTitle = new JLabel("Examination Eligibility Status:");
+        eligibilityTitle.setFont(new Font("Arial", Font.BOLD, 13));
+        eligibilityTitle.setForeground(new Color(10, 45, 90));
+        eligibilityPanel.add(eligibilityTitle);
+        eligibilityPanel.add(Box.createVerticalStrut(5));
+        
+        // Prelim eligibility
+        JLabel prelimEligibility = new JLabel(accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.PRELIM));
+        prelimEligibility.setFont(new Font("Arial", Font.PLAIN, 12));
+        prelimEligibility.setForeground(accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.PRELIM) <= 0 ? 
+            new Color(0, 150, 0) : new Color(200, 0, 0));
+        eligibilityPanel.add(prelimEligibility);
+        
+        // Midterm eligibility
+        JLabel midtermEligibility = new JLabel(accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.MIDTERM));
+        midtermEligibility.setFont(new Font("Arial", Font.PLAIN, 12));
+        midtermEligibility.setForeground(accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.MIDTERM) <= 0 ? 
+            new Color(0, 150, 0) : new Color(200, 0, 0));
+        eligibilityPanel.add(midtermEligibility);
+        
+        // Finals eligibility
+        JLabel finalsEligibility = new JLabel(accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.FINALS));
+        finalsEligibility.setFont(new Font("Arial", Font.PLAIN, 12));
+        finalsEligibility.setForeground(accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.FINALS) <= 0 ? 
+            new Color(0, 150, 0) : new Color(200, 0, 0));
+        eligibilityPanel.add(finalsEligibility);
+        
+        // Add note about processing payments
+        boolean hasProcessingPayments = accountStatement.getPaymentHistory().stream()
+            .anyMatch(p -> p.getStatus() != null && p.getStatus().isInProgress());
+        
+        if (hasProcessingPayments) {
+            eligibilityPanel.add(Box.createVerticalStrut(5));
+            JLabel processingNote = new JLabel("⚠ Payment is being processed. Status will update shortly.");
+            processingNote.setFont(new Font("Arial", Font.ITALIC, 11));
+            processingNote.setForeground(new Color(255, 140, 0));
+            eligibilityPanel.add(processingNote);
+        }
+        
+        panel.add(eligibilityPanel, BorderLayout.SOUTH);
 
         return panel;
     }
@@ -3127,7 +4058,7 @@ public class ISLUStudentPortal extends JFrame {
         java.time.format.DateTimeFormatter dateFormatter2 = java.time.format.DateTimeFormatter.ofPattern("MMMM dd, yyyy");
         String dateStr2 = currentDate2.format(dateFormatter2);
         
-        JLabel headerLabel = new JLabel("Online Payment Transactions");
+        JLabel headerLabel = new JLabel("Payment History as of " + dateStr2);
         headerLabel.setForeground(Color.WHITE);
         headerLabel.setFont(new Font("Arial", Font.BOLD, 14));
         headerPanel.add(headerLabel);
@@ -3137,16 +4068,15 @@ public class ISLUStudentPortal extends JFrame {
         // Update payment statuses
         accountStatement.updatePaymentStatuses();
         
-        // Table with 4 columns to match the image
-        String[] columnNames = {"Date", "Channel", "Reference", "Amount"};
+        // Table with status
+        String[] columnNames = {"Date", "Channel", "Reference", "Amount", "Status"};
         
-        // Load payment transactions from database
-        Object[][] data = loadPaymentTransactions();
+        // Get payment history from account statement
+        List<PaymentTransaction> payments = accountStatement.getPaymentHistory();
+        Object[][] data = new Object[payments.size()][5];
         
-        // Debug: Print data being loaded
-        System.out.println("Data loaded for transactions table:");
-        for (int i = 0; i < data.length; i++) {
-            System.out.println("Row " + i + ": " + java.util.Arrays.toString(data[i]));
+        for (int i = 0; i < payments.size(); i++) {
+            data[i] = payments.get(i).toTableRow();
         }
 
         paymentTableModel = new DefaultTableModel(data, columnNames) {
@@ -3179,19 +4109,8 @@ public class ISLUStudentPortal extends JFrame {
             }
         });
         
-        // Make payment transactions table expandable to show all content
         JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        
-        // Set reasonable height to fit on screen
-        int rowHeight = table.getRowHeight();
-        int headerHeight = table.getTableHeader().getPreferredSize().height;
-        int contentHeight = headerHeight + (table.getRowCount() * rowHeight);
-        int maxHeight = Math.min(contentHeight, 500); // Increase to 500px max height for payment transactions to show maximum content
-        scrollPane.setPreferredSize(new Dimension(0, maxHeight));
-        scrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, maxHeight));
-        
+        scrollPane.setPreferredSize(new Dimension(0, 200));
         panel.add(scrollPane, BorderLayout.CENTER);
 
         return panel;
@@ -3309,7 +4228,7 @@ public class ISLUStudentPortal extends JFrame {
         headerPanel.setBackground(new Color(10, 45, 90));
         headerPanel.setPreferredSize(new Dimension(0, 50));
         
-        JLabel headerLabel = new JLabel("Online Payment Channels");
+        JLabel headerLabel = new JLabel(subItems.get(1));
         headerLabel.setForeground(Color.WHITE);
         headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
         headerPanel.add(headerLabel);
@@ -3327,29 +4246,31 @@ public class ISLUStudentPortal extends JFrame {
         java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM dd, yyyy");
         String dateStr = currentDate.format(dateFormatter);
         
-        JLabel instructionLabel = new JLabel("<html>Tuition fees can be paid via the available online payment channels.</html>");
+        JLabel instructionLabel = new JLabel("<html>Tuition fees can be paid via the available online payment channels.<br>Last updated: " + dateStr + "</html>");
         instructionLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         instructionLabel.setForeground(Color.DARK_GRAY);
         contentPanel.add(instructionLabel);
         contentPanel.add(Box.createVerticalStrut(20));
 
-        // Payment channel buttons - Updated to match design exactly
+        // Payment channel buttons
         String[] channels = {
             "UnionBank UPay Online",
             "Dragonpay Payment Gateway", 
-            "BPI Online",
-            "BDO Online",
+            "BPI BPI Online",
+            "BDO BDO Online",
             "BDO Bills Payment",
-            "Bukas Tuition Installment Plans"
+            "Bukas Tuition Installment Plans",
+            "Cashier Onsite Payment"
         };
 
         Color[] colors = {
-            new Color(255, 140, 0), // Orange for UnionBank
-            new Color(255, 69, 0),  // Red-Orange for Dragonpay
-            new Color(220, 20, 60), // Crimson for BPI
-            new Color(0, 100, 200), // Blue for BDO
-            new Color(0, 100, 200), // Blue for BDO Bills
-            new Color(135, 206, 235) // Light Blue for Bukas
+            new Color(255, 140, 0), // Orange
+            new Color(255, 69, 0),  // Red-Orange
+            new Color(220, 20, 60), // Crimson
+            new Color(0, 100, 200), // Blue
+            new Color(0, 100, 200), // Blue
+            new Color(135, 206, 235), // Light Blue
+            new Color(100, 100, 100) // Gray for onsite
         };
 
         for (int i = 0; i < channels.length; i++) {
@@ -3364,7 +4285,11 @@ public class ISLUStudentPortal extends JFrame {
             // Add action listener for payment processing
             final String channelName = channels[i];
             channelButton.addActionListener(e -> {
+                if (channelName.contains("Cashier")) {
+                    showOnsitePaymentDialog(channelName);
+                } else {
                     showPaymentDialog(channelName);
+                }
             });
             
             contentPanel.add(channelButton);
@@ -3379,8 +4304,9 @@ public class ISLUStudentPortal extends JFrame {
     private AccountStatement accountStatement; // Account statement for current student
     private JLabel overpaymentValueLabel; // Reference to update the display
     private JLabel amountDueValueLabel; // Reference to update the amount due display
-    private JLabel prelimAmountValueLabel; // Reference to update the prelim amount display
-    private JLabel prelimStatusLabel; // Reference to update the prelim status display
+    private JLabel prelimStatusLabel; // Reference to update the PRELIM STATUS display
+    private JLabel midtermStatusLabel; // Reference to update the MIDTERM STATUS display
+    private JLabel finalsStatusLabel; // Reference to update the FINALS STATUS display
     private DefaultTableModel paymentTableModel; // Reference to payment transactions table model
     private DefaultTableModel feeBreakdownTableModel; // Reference to fee breakdown table model
 
@@ -3570,830 +4496,22 @@ public class ISLUStudentPortal extends JFrame {
      * Shows payment dialog to collect card information and process payment
      */
     private void showPaymentDialog(String channelName) {
-        // Check if it's Dragonpay - show special dialog
-        if (channelName.contains("Dragonpay")) {
-            showDragonpayDialog(channelName);
-            return;
-        }
-        
-        // Check if it's GCash - show special dialog
-        if (channelName.contains("GCash")) {
-            showGCashDialog(channelName);
-            return;
-        }
-        
-        JDialog paymentDialog = new JDialog(this, "", true);
-        paymentDialog.setSize(400, 300);
+        JDialog paymentDialog = new JDialog(this, "Payment - " + channelName, true);
+        paymentDialog.setSize(500, 400);
         paymentDialog.setLocationRelativeTo(this);
         paymentDialog.setLayout(new BorderLayout());
-        paymentDialog.setUndecorated(false);
-        paymentDialog.setResizable(false);
 
-        // Header - Dark blue with UPay by UnionBank title (centered, no close button)
-        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        // Header
+        JPanel headerPanel = new JPanel();
         headerPanel.setBackground(new Color(10, 45, 90));
         headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
         
-        // Dynamic header text based on the payment channel
-        String headerText;
-        if (channelName.contains("BPI")) {
-            headerText = "Payment through BPI Online";
-        } else if (channelName.contains("BDO Bills Payment")) {
-            headerText = "Payment through BDO Bills Payment";
-        } else if (channelName.contains("BDO")) {
-            headerText = "Payment through BDO Online";
-        } else if (channelName.contains("UnionBank")) {
-            headerText = "Payment through UPay by UnionBank";
-        } else {
-            headerText = "Payment through " + channelName;
-        }
-        
-        JLabel headerLabel = new JLabel(headerText);
-        headerLabel.setForeground(new Color(255, 215, 0)); // Gold color
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        JLabel headerLabel = new JLabel("Payment Information - " + channelName);
+        headerLabel.setForeground(Color.WHITE);
+        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
         headerPanel.add(headerLabel);
         
         paymentDialog.add(headerPanel, BorderLayout.NORTH);
-
-        // Main content panel - White background
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
-        contentPanel.setBackground(Color.WHITE);
-
-        // AMOUNT TO PAY label (centered)
-        JLabel amountLabel = new JLabel("AMOUNT TO PAY");
-        amountLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        amountLabel.setForeground(new Color(100, 100, 100));
-        amountLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(amountLabel);
-        contentPanel.add(Box.createVerticalStrut(10));
-
-        // Amount input field - Large, centered, with current amount due (non-editable)
-        JTextField amountField = new JTextField();
-        amountField.setFont(new Font("Arial", Font.BOLD, 24));
-        amountField.setForeground(new Color(10, 45, 90));
-        amountField.setHorizontalAlignment(JTextField.CENTER);
-        amountField.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
-        amountField.setPreferredSize(new Dimension(300, 50));
-        amountField.setMaximumSize(new Dimension(300, 50));
-        amountField.setEditable(false); // Make non-editable
-        
-        // Set the amount due from DueBalance.txt (2nd element of CSV)
-        double amountDue = UserBalanceDatabase.getAmountDue(studentID);
-        amountField.setText(String.format("%.0f", amountDue));
-        amountField.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(amountField);
-
-        contentPanel.add(Box.createVerticalStrut(20));
-        paymentDialog.add(contentPanel, BorderLayout.CENTER);
-
-        // Footer - Light gray background
-        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        footerPanel.setBackground(new Color(240, 240, 240));
-        footerPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        
-        JButton proceedButton = new JButton("Proceed");
-        proceedButton.setBackground(new Color(200, 200, 200));
-        proceedButton.setForeground(Color.BLACK);
-        proceedButton.setFont(new Font("Arial", Font.PLAIN, 12));
-        proceedButton.setBorder(BorderFactory.createRaisedBevelBorder());
-        proceedButton.setPreferredSize(new Dimension(80, 30));
-        proceedButton.addActionListener(e -> {
-            try {
-                double amount = Double.parseDouble(amountField.getText());
-                paymentDialog.dispose();
-                showCardPaymentDialog(channelName, amount);
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(paymentDialog, "Please enter a valid amount.", "Invalid Amount", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        
-        footerPanel.add(proceedButton);
-        paymentDialog.add(footerPanel, BorderLayout.SOUTH);
-        
-        paymentDialog.setVisible(true);
-    }
-
-    /**
-     * Shows the Dragonpay payment dialog with payment options dropdown
-     */
-    private void showDragonpayDialog(String channelName) {
-        JDialog dragonpayDialog = new JDialog(this, "Payment through Dragon Pay", true);
-        dragonpayDialog.setSize(500, 400);
-        dragonpayDialog.setLocationRelativeTo(this);
-        dragonpayDialog.setLayout(new BorderLayout());
-
-        // Header
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        
-        JLabel headerLabel = new JLabel("Payment through Dragon Pay");
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        headerLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        headerPanel.add(headerLabel, BorderLayout.CENTER);
-        
-        dragonpayDialog.add(headerPanel, BorderLayout.NORTH);
-
-        // Main content panel
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        contentPanel.setBackground(Color.WHITE);
-
-        // AMOUNT TO PAY section
-        JLabel amountLabel = new JLabel("AMOUNT TO PAY");
-        amountLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        amountLabel.setForeground(new Color(100, 100, 100));
-        amountLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(amountLabel);
-        contentPanel.add(Box.createVerticalStrut(10));
-
-        // Amount input field
-        JTextField amountField = new JTextField();
-        amountField.setFont(new Font("Arial", Font.BOLD, 24));
-        amountField.setForeground(new Color(10, 45, 90));
-        amountField.setHorizontalAlignment(JTextField.CENTER);
-        amountField.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
-        amountField.setPreferredSize(new Dimension(300, 50));
-        amountField.setMaximumSize(new Dimension(300, 50));
-        amountField.setEditable(false);
-        
-        // Set the amount due from DueBalance.txt (2nd element of CSV)
-        double amountDue = UserBalanceDatabase.getAmountDue(studentID);
-        final double finalAmountDue = amountDue; // Make final for lambda expression
-        
-        amountField.setText(String.format("%.0f", finalAmountDue));
-        amountField.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(amountField);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Payment options dropdown
-        JLabel dropdownLabel = new JLabel("--- SELECT A PAYMENT OPTION ---");
-        dropdownLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        dropdownLabel.setForeground(new Color(100, 100, 100));
-        dropdownLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(dropdownLabel);
-        contentPanel.add(Box.createVerticalStrut(10));
-
-        // Create dropdown with payment options
-        String[] paymentOptions = {
-            "--- SELECT A PAYMENT OPTION ---",
-            "--- ATM Banks ---",
-            "Banco de Oro ATM",
-            "--- E-Wallets / MobilePayments ---",
-            "Alipay",
-            "Coins.ph Wallet / Bitcoin",
-            "Dragonpay Prepaid Credits",
-            "GCASH BILLS PAY",
-            "GCash",
-            "GrabPay",
-            "INSTAPAY",
-            "PESONET",
-            "PayMaya (Optional)",
-            "PayMaya Bills Pay",
-            "Shopeepay",
-            "TAYO CASH",
-            "Triple A",
-            "WeChat Pay (Optional)",
-            "XANPAY (HK,SG,TH,MY and AU)",
-            "--- Online Bank ---",
-            "BDO Internet Banking",
-            "BPI Online",
-            "Bank of Commerce Online",
-            "Chinabank Online Bills Payment (NEW)",
-            "Landbank ATM Online",
-            "Maybank Online Banking",
-            "Metrobank Online Banking",
-            "PSBank",
-            "RCBC Online Banking",
-            "RobinsonsBank Online Bills Payment",
-            "UCPB Connect/Mobile",
-            "Unionbank Internet Banking",
-            "--- Over-the-CounterBank ---",
-            "AUB Online/Cash Payment",
-            "BDO Cash Deposit w/ Ref",
-            "BPI Cash Payment",
-            "Chinabank Cash Payment (NEW)",
-            "EastWest Online/Cash Payment",
-            "I2I Rural Banks",
-            "PNB Cash Payment",
-            "PNB Internet Banking Bills Payment",
-            "RCBC Cash Payment / ATM Bills Payment",
-            "RobinsonsBank Cash Payment",
-            "Security Bank Cash Payment",
-            "UCPB ATM/Cash Payment",
-            "Unionbank Cash Payment",
-            "--- Over-the-CounterNon-Bank ---",
-            "7/Eleven",
-            "CVM PAWNSHOP",
-            "Cebuana Lhuillier Bills Payment",
-            "ECPay (Pawnshops, Payment Centers)",
-            "M. Lhuillier",
-            "PERAHUB",
-            "PNB Remittance (selective)",
-            "POSIBLE.NET",
-            "Palawan Pawnshop",
-            "RD Pawnshop",
-            "Robinsons Department Store",
-            "RuralNet Banks and Coops",
-            "SM Dept/Supermarket/Savemore Counter",
-            "USSC"
-        };
-
-        JComboBox<String> paymentDropdown = new JComboBox<>(paymentOptions);
-        paymentDropdown.setPreferredSize(new Dimension(400, 30));
-        paymentDropdown.setMaximumSize(new Dimension(400, 30));
-        paymentDropdown.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(paymentDropdown);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // AMOUNT TO PAY + CHARGES section
-        JLabel chargesLabel = new JLabel("AMOUNT TO PAY + CHARGES");
-        chargesLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        chargesLabel.setForeground(new Color(100, 100, 100));
-        chargesLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        chargesLabel.setVisible(false); // Initially hidden
-        contentPanel.add(chargesLabel);
-        contentPanel.add(Box.createVerticalStrut(10));
-
-        // Charges amount field (read-only)
-        JTextField chargesField = new JTextField();
-        chargesField.setFont(new Font("Arial", Font.BOLD, 24));
-        chargesField.setForeground(new Color(10, 45, 90));
-        chargesField.setHorizontalAlignment(JTextField.CENTER);
-        chargesField.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
-        chargesField.setPreferredSize(new Dimension(300, 50));
-        chargesField.setMaximumSize(new Dimension(300, 50));
-        chargesField.setEditable(false);
-        chargesField.setText(String.format("%.0f", finalAmountDue)); // Initially no charges
-        chargesField.setAlignmentX(Component.CENTER_ALIGNMENT);
-        chargesField.setVisible(false); // Initially hidden
-        contentPanel.add(chargesField);
-
-        // Update charges when dropdown selection changes
-        paymentDropdown.addActionListener(e -> {
-            String selectedOption = (String) paymentDropdown.getSelectedItem();
-            if (selectedOption != null && !selectedOption.startsWith("---") && !selectedOption.equals("--- SELECT A PAYMENT OPTION ---")) {
-                // Show charges section and calculate charge
-                chargesLabel.setVisible(true);
-                chargesField.setVisible(true);
-                
-                double charge = 0;
-                if (selectedOption.equals("GCASH BILLS PAY")) {
-                    charge = 15; // Fixed charge for GCash Bills Pay
-                } else {
-                    // Randomize charge for other options: 15, 25, or 50
-                    int randomCharge = (int) (Math.random() * 3); // 0, 1, or 2
-                    switch (randomCharge) {
-                        case 0: charge = 15; break;
-                        case 1: charge = 25; break;
-                        case 2: charge = 50; break;
-                    }
-                }
-                
-                chargesField.setText(String.format("%.0f", finalAmountDue + charge));
-            } else {
-                // Hide charges section
-                chargesLabel.setVisible(false);
-                chargesField.setVisible(false);
-            }
-        });
-
-        contentPanel.add(Box.createVerticalStrut(20));
-        dragonpayDialog.add(contentPanel, BorderLayout.CENTER);
-
-        // Footer
-        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        footerPanel.setBackground(new Color(240, 240, 240));
-        footerPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        
-        JButton proceedButton = new JButton("Proceed");
-        proceedButton.setBackground(new Color(200, 200, 200));
-        proceedButton.setForeground(Color.BLACK);
-        proceedButton.setFont(new Font("Arial", Font.PLAIN, 12));
-        proceedButton.setBorder(BorderFactory.createRaisedBevelBorder());
-        proceedButton.setPreferredSize(new Dimension(80, 30));
-        proceedButton.addActionListener(e -> {
-            String selectedOption = (String) paymentDropdown.getSelectedItem();
-            if (selectedOption != null && !selectedOption.startsWith("---") && !selectedOption.equals("--- SELECT A PAYMENT OPTION ---")) {
-                // Calculate charge based on selected option
-                double charge = 0;
-                if (selectedOption.equals("GCASH BILLS PAY")) {
-                    charge = 15; // Fixed charge for GCash Bills Pay
-                } else {
-                    // Randomize charge for other options: 15, 25, or 50
-                    int randomCharge = (int) (Math.random() * 3); // 0, 1, or 2
-                    switch (randomCharge) {
-                        case 0: charge = 15; break;
-                        case 1: charge = 25; break;
-                        case 2: charge = 50; break;
-                    }
-                }
-                
-                double totalAmount = finalAmountDue + charge;
-                dragonpayDialog.dispose();
-                
-                // Check if it's GCash Bills Pay - show special GCash form
-                if (selectedOption.equals("GCASH BILLS PAY")) {
-                    showGCashBillsPayDialog(channelName, totalAmount);
-                } else {
-                    showCardPaymentDialog(channelName, totalAmount);
-                }
-            } else {
-                JOptionPane.showMessageDialog(dragonpayDialog, "Please select a payment option.", "No Option Selected", JOptionPane.WARNING_MESSAGE);
-            }
-        });
-        
-        footerPanel.add(proceedButton);
-        dragonpayDialog.add(footerPanel, BorderLayout.SOUTH);
-        
-        dragonpayDialog.setVisible(true);
-    }
-
-    /**
-     * Shows the GCash payment dialog with GCash number and account holder name
-     */
-    private void showGCashDialog(String channelName) {
-        JDialog gcashDialog = new JDialog(this, "Payment - " + channelName, true);
-        gcashDialog.setSize(500, 500);
-        gcashDialog.setLocationRelativeTo(this);
-        gcashDialog.setLayout(new BorderLayout());
-
-        // Header - Dark blue with GCash title
-        JPanel headerPanel = new JPanel();
-        headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        
-        JLabel headerLabel = new JLabel("Payment Information - " + channelName);
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        headerPanel.add(headerLabel);
-        
-        gcashDialog.add(headerPanel, BorderLayout.NORTH);
-
-        // Main content panel
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        contentPanel.setBackground(Color.WHITE);
-
-        // GCash Number
-        JPanel gcashNumberPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        gcashNumberPanel.setBackground(Color.WHITE);
-        JLabel gcashNumberLabel = new JLabel("GCash Number:");
-        gcashNumberLabel.setPreferredSize(new Dimension(150, 25));
-        gcashNumberPanel.add(gcashNumberLabel);
-        
-        JTextField gcashNumberField = new JTextField();
-        gcashNumberField.setPreferredSize(new Dimension(200, 25));
-        gcashNumberField.setDocument(new GCashNumberDocument()); // Custom document for 11 digits
-        gcashNumberPanel.add(gcashNumberField);
-        contentPanel.add(gcashNumberPanel);
-        contentPanel.add(Box.createVerticalStrut(15));
-
-        // Account Holder Name
-        JPanel namePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        namePanel.setBackground(Color.WHITE);
-        JLabel nameLabel = new JLabel("Account Holder Name:");
-        nameLabel.setPreferredSize(new Dimension(150, 25));
-        namePanel.add(nameLabel);
-        
-        JTextField nameField = new JTextField();
-        nameField.setPreferredSize(new Dimension(200, 25));
-        namePanel.add(nameField);
-        contentPanel.add(namePanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Send OTP Button
-        JPanel sendOTPPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 5));
-        sendOTPPanel.setBackground(Color.WHITE);
-        
-        JButton sendOTPButton = new JButton("Send OTP");
-        sendOTPButton.setBackground(new Color(0, 150, 0));
-        sendOTPButton.setForeground(Color.WHITE);
-        sendOTPButton.setFont(new Font("Arial", Font.BOLD, 12));
-        sendOTPButton.setPreferredSize(new Dimension(120, 35));
-        sendOTPButton.addActionListener(e -> {
-            if (gcashNumberField.getText().trim().isEmpty() || nameField.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(gcashDialog, "Please fill in all fields.", "Incomplete Information", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            // Generate random 6-digit OTP
-            int randomOTP = (int) (Math.random() * 900000) + 100000; // 100000 to 999999
-            String otpCode = String.valueOf(randomOTP);
-            
-            // Store OTP for validation (you could use a class field or pass it to the submit button)
-            sendOTPButton.putClientProperty("generatedOTP", otpCode);
-            
-            // Show OTP instruction with the generated OTP (for demo purposes)
-            JOptionPane.showMessageDialog(gcashDialog, "OTP has been sent to your registered mobile number.\nGenerated OTP: " + otpCode, "OTP Sent", JOptionPane.INFORMATION_MESSAGE);
-        });
-        sendOTPPanel.add(sendOTPButton);
-        contentPanel.add(sendOTPPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // OTP Input Section
-        JPanel otpPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        otpPanel.setBackground(Color.WHITE);
-        JLabel otpLabel = new JLabel("Enter 6-digit OTP:");
-        otpLabel.setPreferredSize(new Dimension(150, 25));
-        otpPanel.add(otpLabel);
-        
-        JTextField otpField = new JTextField();
-        otpField.setPreferredSize(new Dimension(150, 25));
-        otpField.setDocument(new OTPDocument()); // Custom document for exactly 6 digits
-        otpField.setFont(new Font("Arial", Font.BOLD, 14));
-        otpField.setHorizontalAlignment(JTextField.CENTER);
-        otpPanel.add(otpField);
-        contentPanel.add(otpPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        gcashDialog.add(contentPanel, BorderLayout.CENTER);
-
-        // Buttons panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-        buttonPanel.setBackground(Color.WHITE);
-        
-        JButton submitButton = new JButton("Submit Payment");
-        submitButton.setBackground(new Color(0, 150, 0));
-        submitButton.setForeground(Color.WHITE);
-        submitButton.setFont(new Font("Arial", Font.BOLD, 12));
-        submitButton.setPreferredSize(new Dimension(140, 35));
-        submitButton.setEnabled(false); // Initially disabled
-        
-        // Enable/disable submit button based on OTP field
-        otpField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { updateSubmitButton(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { updateSubmitButton(); }
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { updateSubmitButton(); }
-            
-            private void updateSubmitButton() {
-                submitButton.setEnabled(otpField.getText().trim().length() == 6);
-            }
-        });
-        
-        submitButton.addActionListener(e -> {
-            String otp = otpField.getText().trim();
-            if (otp.length() != 6) {
-                JOptionPane.showMessageDialog(gcashDialog, "Please enter a valid 6-digit OTP.", "Invalid OTP", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            
-            // Get the generated OTP from the Send OTP button
-            String generatedOTP = (String) sendOTPButton.getClientProperty("generatedOTP");
-            if (generatedOTP == null) {
-                JOptionPane.showMessageDialog(gcashDialog, "Please send OTP first.", "No OTP Generated", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            
-            // Validate OTP
-            if (otp.equals(generatedOTP)) {
-                double amountDue = UserBalanceDatabase.getAmountDue(studentID);
-                gcashDialog.dispose();
-                processGCashPayment(channelName, amountDue);
-            } else {
-                JOptionPane.showMessageDialog(gcashDialog, "Invalid OTP. Please try again.", "OTP Verification Failed", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.setBackground(new Color(200, 0, 0));
-        cancelButton.setForeground(Color.WHITE);
-        cancelButton.setFont(new Font("Arial", Font.BOLD, 12));
-        cancelButton.setPreferredSize(new Dimension(80, 35));
-        cancelButton.addActionListener(e -> gcashDialog.dispose());
-        
-        buttonPanel.add(submitButton);
-        buttonPanel.add(cancelButton);
-        gcashDialog.add(buttonPanel, BorderLayout.SOUTH);
-        
-        gcashDialog.setVisible(true);
-    }
-
-    /**
-     * Shows the GCash Bills Pay dialog for Dragonpay with GCash number and account holder name
-     */
-    private void showGCashBillsPayDialog(String channelName, double amount) {
-        JDialog gcashBillsDialog = new JDialog(this, "Payment - " + channelName, true);
-        gcashBillsDialog.setSize(500, 500);
-        gcashBillsDialog.setLocationRelativeTo(this);
-        gcashBillsDialog.setLayout(new BorderLayout());
-
-        // Header - Dark blue with GCash Bills Pay title
-        JPanel headerPanel = new JPanel();
-        headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        
-        JLabel headerLabel = new JLabel("Payment Information - GCash Bills Pay");
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        headerPanel.add(headerLabel);
-        
-        gcashBillsDialog.add(headerPanel, BorderLayout.NORTH);
-
-        // Main content panel
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        contentPanel.setBackground(Color.WHITE);
-
-        // Amount to Pay (pre-filled, non-editable)
-        JPanel amountPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        amountPanel.setBackground(Color.WHITE);
-        JLabel amountLabel = new JLabel("Amount to Pay:");
-        amountLabel.setPreferredSize(new Dimension(150, 25));
-        amountPanel.add(amountLabel);
-        
-        JTextField amountField = new JTextField();
-        amountField.setPreferredSize(new Dimension(150, 25));
-        amountField.setText(String.format("%.2f", amount));
-        amountField.setEditable(false); // Make non-editable
-        amountField.setBackground(new Color(240, 240, 240)); // Light gray background
-        amountPanel.add(amountField);
-        contentPanel.add(amountPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // GCash Number
-        JPanel gcashNumberPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        gcashNumberPanel.setBackground(Color.WHITE);
-        JLabel gcashNumberLabel = new JLabel("GCash Number:");
-        gcashNumberLabel.setPreferredSize(new Dimension(150, 25));
-        gcashNumberPanel.add(gcashNumberLabel);
-        
-        JTextField gcashNumberField = new JTextField();
-        gcashNumberField.setPreferredSize(new Dimension(200, 25));
-        gcashNumberField.setDocument(new GCashNumberDocument()); // Custom document for 11 digits
-        gcashNumberPanel.add(gcashNumberField);
-        contentPanel.add(gcashNumberPanel);
-        contentPanel.add(Box.createVerticalStrut(15));
-
-        // Account Holder Name
-        JPanel namePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        namePanel.setBackground(Color.WHITE);
-        JLabel nameLabel = new JLabel("Account Holder Name:");
-        nameLabel.setPreferredSize(new Dimension(150, 25));
-        namePanel.add(nameLabel);
-        
-        JTextField nameField = new JTextField();
-        nameField.setPreferredSize(new Dimension(200, 25));
-        namePanel.add(nameField);
-        contentPanel.add(namePanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Send OTP Button
-        JPanel sendOTPPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 5));
-        sendOTPPanel.setBackground(Color.WHITE);
-        
-        JButton sendOTPButton = new JButton("Send OTP");
-        sendOTPButton.setBackground(new Color(0, 150, 0));
-        sendOTPButton.setForeground(Color.WHITE);
-        sendOTPButton.setFont(new Font("Arial", Font.BOLD, 12));
-        sendOTPButton.setPreferredSize(new Dimension(120, 35));
-        sendOTPButton.addActionListener(e -> {
-            if (gcashNumberField.getText().trim().isEmpty() || nameField.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(gcashBillsDialog, "Please fill in all fields.", "Incomplete Information", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            // Generate random 6-digit OTP
-            int randomOTP = (int) (Math.random() * 900000) + 100000; // 100000 to 999999
-            String otpCode = String.valueOf(randomOTP);
-            
-            // Store OTP for validation
-            sendOTPButton.putClientProperty("generatedOTP", otpCode);
-            
-            // Show OTP instruction with the generated OTP (for demo purposes)
-            JOptionPane.showMessageDialog(gcashBillsDialog, "OTP has been sent to your registered mobile number.\nGenerated OTP: " + otpCode, "OTP Sent", JOptionPane.INFORMATION_MESSAGE);
-        });
-        sendOTPPanel.add(sendOTPButton);
-        contentPanel.add(sendOTPPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // OTP Input Section
-        JPanel otpPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
-        otpPanel.setBackground(Color.WHITE);
-        JLabel otpLabel = new JLabel("Enter 6-digit OTP:");
-        otpLabel.setPreferredSize(new Dimension(150, 25));
-        otpPanel.add(otpLabel);
-        
-        JTextField otpField = new JTextField();
-        otpField.setPreferredSize(new Dimension(150, 25));
-        otpField.setDocument(new OTPDocument()); // Custom document for exactly 6 digits
-        otpField.setFont(new Font("Arial", Font.BOLD, 14));
-        otpField.setHorizontalAlignment(JTextField.CENTER);
-        otpPanel.add(otpField);
-        contentPanel.add(otpPanel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        gcashBillsDialog.add(contentPanel, BorderLayout.CENTER);
-
-        // Buttons panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-        buttonPanel.setBackground(Color.WHITE);
-        
-        JButton submitButton = new JButton("Submit Payment");
-        submitButton.setBackground(new Color(0, 150, 0));
-        submitButton.setForeground(Color.WHITE);
-        submitButton.setFont(new Font("Arial", Font.BOLD, 12));
-        submitButton.setPreferredSize(new Dimension(140, 35));
-        submitButton.setEnabled(false); // Initially disabled
-        
-        // Enable/disable submit button based on OTP field
-        otpField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { updateSubmitButton(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { updateSubmitButton(); }
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { updateSubmitButton(); }
-            
-            private void updateSubmitButton() {
-                submitButton.setEnabled(otpField.getText().trim().length() == 6);
-            }
-        });
-        
-        submitButton.addActionListener(e -> {
-            String otp = otpField.getText().trim();
-            if (otp.length() != 6) {
-                JOptionPane.showMessageDialog(gcashBillsDialog, "Please enter a valid 6-digit OTP.", "Invalid OTP", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            
-            // Get the generated OTP from the Send OTP button
-            String generatedOTP = (String) sendOTPButton.getClientProperty("generatedOTP");
-            if (generatedOTP == null) {
-                JOptionPane.showMessageDialog(gcashBillsDialog, "Please send OTP first.", "No OTP Generated", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            
-            // Validate OTP
-            if (otp.equals(generatedOTP)) {
-                gcashBillsDialog.dispose();
-                processGCashPayment(channelName, amount);
-            } else {
-                JOptionPane.showMessageDialog(gcashBillsDialog, "Invalid OTP. Please try again.", "OTP Verification Failed", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.setBackground(new Color(200, 0, 0));
-        cancelButton.setForeground(Color.WHITE);
-        cancelButton.setFont(new Font("Arial", Font.BOLD, 12));
-        cancelButton.setPreferredSize(new Dimension(80, 35));
-        cancelButton.addActionListener(e -> gcashBillsDialog.dispose());
-        
-        buttonPanel.add(submitButton);
-        buttonPanel.add(cancelButton);
-        gcashBillsDialog.add(buttonPanel, BorderLayout.SOUTH);
-        
-        gcashBillsDialog.setVisible(true);
-    }
-
-    /**
-     * Shows the OTP verification dialog
-     */
-    private void showOTPDialog(String channelName, double amount) {
-        JDialog otpDialog = new JDialog(this, "OTP Verification", true);
-        otpDialog.setSize(400, 300);
-        otpDialog.setLocationRelativeTo(this);
-        otpDialog.setLayout(new BorderLayout());
-
-        // Header
-        JPanel headerPanel = new JPanel();
-        headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        
-        JLabel headerLabel = new JLabel("OTP Verification");
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        headerPanel.add(headerLabel);
-        
-        otpDialog.add(headerPanel, BorderLayout.NORTH);
-
-        // Main content panel
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        contentPanel.setBackground(Color.WHITE);
-
-        // OTP instruction text
-        JLabel instructionLabel = new JLabel("You will receive a 6-digit OTP on your registered mobile number.");
-        instructionLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        instructionLabel.setForeground(new Color(100, 100, 100));
-        instructionLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(instructionLabel);
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // OTP input field
-        JPanel otpPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 5));
-        otpPanel.setBackground(Color.WHITE);
-        JLabel otpLabel = new JLabel("Enter 6-digit OTP:");
-        otpLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        otpPanel.add(otpLabel);
-        contentPanel.add(otpPanel);
-        contentPanel.add(Box.createVerticalStrut(10));
-        
-        JTextField otpField = new JTextField();
-        otpField.setPreferredSize(new Dimension(150, 30));
-        otpField.setFont(new Font("Arial", Font.BOLD, 16));
-        otpField.setHorizontalAlignment(JTextField.CENTER);
-        otpField.setDocument(new OTPDocument()); // Custom document for exactly 6 digits
-        otpField.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(otpField);
-
-        otpDialog.add(contentPanel, BorderLayout.CENTER);
-
-        // Buttons panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-        buttonPanel.setBackground(Color.WHITE);
-        
-        JButton verifyButton = new JButton("Verify OTP");
-        verifyButton.setBackground(new Color(0, 150, 0));
-        verifyButton.setForeground(Color.WHITE);
-        verifyButton.setFont(new Font("Arial", Font.BOLD, 12));
-        verifyButton.setPreferredSize(new Dimension(120, 35));
-        verifyButton.addActionListener(e -> {
-            String otp = otpField.getText().trim();
-            if (otp.length() != 6) {
-                JOptionPane.showMessageDialog(otpDialog, "Please enter a valid 6-digit OTP.", "Invalid OTP", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            
-            // Simulate OTP verification (in real app, this would validate with GCash API)
-            if (otp.equals("123456")) { // Simple verification for demo
-                otpDialog.dispose();
-                processGCashPayment(channelName, amount);
-            } else {
-                JOptionPane.showMessageDialog(otpDialog, "Invalid OTP. Please try again.", "OTP Verification Failed", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-        
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.setBackground(new Color(200, 0, 0));
-        cancelButton.setForeground(Color.WHITE);
-        cancelButton.setFont(new Font("Arial", Font.BOLD, 12));
-        cancelButton.setPreferredSize(new Dimension(80, 35));
-        cancelButton.addActionListener(e -> otpDialog.dispose());
-        
-        buttonPanel.add(verifyButton);
-        buttonPanel.add(cancelButton);
-        otpDialog.add(buttonPanel, BorderLayout.SOUTH);
-        
-        otpDialog.setVisible(true);
-    }
-
-    /**
-     * Processes GCash payment and deducts from remaining balance
-     */
-    private void processGCashPayment(String channelName, double amount) {
-        // For GCash payments, we only deduct the base amount (6830) without charges
-        double baseAmount = 6830.0; // Base prelim amount without charges
-        
-        // Update the CSV file by deducting from both amount due and remaining balance
-        UserBalanceDatabase.processPayment(studentID, baseAmount);
-        
-        // Process the payment through AccountStatementManager to ensure persistence
-        AccountStatement.PaymentResult result = AccountStatementManager.processPayment(
-            studentID, baseAmount, channelName, "GCash Payment for Prelim");
-        
-        if (result.success) {
-            // Update the account statement reference
-            accountStatement = AccountStatementManager.getStatement(studentID);
-            
-            // Log the payment transaction to paymentLogs.txt
-            logPaymentTransaction(channelName, baseAmount);
-            
-            JOptionPane.showMessageDialog(this, 
-                "Payment successful!\nAmount Paid: P " + String.format("%.2f", baseAmount) + 
-                "\nPrelim Amount Due: P 0.00\nRemaining Balance: P " + String.format("%.2f", accountStatement.getBalance()), 
-                "Payment Confirmed", JOptionPane.INFORMATION_MESSAGE);
-            
-            // Refresh the statement of accounts panel
-            refreshStatementOfAccounts();
-        } else {
-            JOptionPane.showMessageDialog(this, result.message, "Payment Failed", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    /**
-     * Shows the card payment dialog with card information form
-     */
-    private void showCardPaymentDialog(String channelName, double amount) {
-        JDialog cardDialog = new JDialog(this, "Payment - " + channelName, true);
-        cardDialog.setSize(500, 400);
-        cardDialog.setLocationRelativeTo(this);
-        cardDialog.setLayout(new BorderLayout());
-
-        // Header
-        JPanel headerPanel = new JPanel();
-        headerPanel.setBackground(new Color(10, 45, 90));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        
-        JLabel headerLabel = new JLabel("Payment Information - " + channelName);
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        headerPanel.add(headerLabel);
-        
-        cardDialog.add(headerPanel, BorderLayout.NORTH);
 
         // Main content panel
         JPanel contentPanel = new JPanel();
@@ -4456,7 +4574,7 @@ public class ISLUStudentPortal extends JFrame {
         contentPanel.add(namePanel);
         contentPanel.add(Box.createVerticalStrut(20));
 
-        // Amount to Pay (pre-filled with the amount from previous dialog, non-editable)
+        // Amount to Pay
         JPanel amountPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 5));
         amountPanel.setBackground(Color.WHITE);
         JLabel amountLabel = new JLabel("Amount to Pay:");
@@ -4465,8 +4583,6 @@ public class ISLUStudentPortal extends JFrame {
         
         JTextField amountField = new JTextField();
         amountField.setPreferredSize(new Dimension(150, 25));
-        amountField.setText(String.format("%.2f", amount));
-        amountField.setEditable(false); // Make non-editable
         amountPanel.add(amountField);
         contentPanel.add(amountPanel);
         contentPanel.add(Box.createVerticalStrut(20));
@@ -4484,7 +4600,7 @@ public class ISLUStudentPortal extends JFrame {
             if (processPayment(cardNumberField.getText(), cvvField.getText(), 
                              expDateField.getText(), nameField.getText(), 
                              amountField.getText(), channelName)) {
-                cardDialog.dispose();
+                paymentDialog.dispose();
             }
         });
         
@@ -4493,14 +4609,14 @@ public class ISLUStudentPortal extends JFrame {
         cancelButton.setForeground(Color.WHITE);
         cancelButton.setFont(new Font("Arial", Font.BOLD, 12));
         cancelButton.setPreferredSize(new Dimension(80, 35));
-        cancelButton.addActionListener(e -> cardDialog.dispose());
+        cancelButton.addActionListener(e -> paymentDialog.dispose());
         
         buttonPanel.add(submitButton);
         buttonPanel.add(cancelButton);
         contentPanel.add(buttonPanel);
 
-        cardDialog.add(contentPanel, BorderLayout.CENTER);
-        cardDialog.setVisible(true);
+        paymentDialog.add(contentPanel, BorderLayout.CENTER);
+        paymentDialog.setVisible(true);
     }
 
     /**
@@ -4565,23 +4681,14 @@ public class ISLUStudentPortal extends JFrame {
         // Generate reference number
         String reference = generatePaymentReference(channelName);
         
-        // Process payment using DueBalance.txt database
-        // For prelim payments, only deduct the base amount (6830) from amount due
-        // Charges are processing fees, not part of the actual amount due
-        double baseAmount = 6830.0; // Fixed prelim amount without charges
-        UserBalanceDatabase.processPayment(studentID, baseAmount);
-        
-        // Also process through AccountStatementManager for transaction logging
+        // Process payment using AccountStatementManager
         AccountStatement.PaymentResult result = AccountStatementManager.processPayment(
-            studentID, baseAmount, channelName, reference
+            studentID, amount, channelName, reference
         );
         
         if (result.success) {
             // Update the account statement reference
             accountStatement = AccountStatementManager.getStatement(studentID);
-            
-            // Log the payment transaction to paymentLogs.txt
-            logPaymentTransaction(channelName, baseAmount);
             
             // Add payment to table
             addPaymentToTable(result.transaction);
@@ -4593,14 +4700,11 @@ public class ISLUStudentPortal extends JFrame {
             message.append("==================\n");
             message.append("Channel: ").append(channelName).append("\n");
             message.append("Reference: ").append(reference).append("\n");
-            message.append("Amount Due: P ").append(String.format("%,.2f", baseAmount)).append("\n");
-            message.append("Processing Fee: P ").append(String.format("%,.2f", amount - baseAmount)).append("\n");
-            message.append("Total Paid: P ").append(String.format("%,.2f", amount)).append("\n\n");
+            message.append("Amount Paid: P ").append(String.format("%,.2f", amount)).append("\n\n");
             
             message.append("Account Status:\n");
             message.append("==================\n");
-            message.append("Prelim Amount Due: P 0.00\n");
-            message.append("Remaining Balance: P ").append(String.format("%,.2f", result.newBalance)).append("\n");
+            message.append("Total Balance: P ").append(String.format("%,.2f", result.newBalance)).append("\n");
             
             if (result.newOverpayment > 0) {
                 message.append("Credit Balance: P ").append(String.format("%,.2f", result.newOverpayment)).append("\n");
@@ -4651,76 +4755,16 @@ public class ISLUStudentPortal extends JFrame {
      * Loads payment transactions using DataManager
      */
     private Object[][] loadPaymentTransactions() {
-        // Debug: Print student ID being used
-        System.out.println("=== LOADING PAYMENT TRANSACTIONS ===");
-        System.out.println("Current student ID: " + studentID);
-        
         java.util.List<PaymentTransaction> transactions = DataManager.loadPaymentTransactions(studentID);
         
-        // Debug: Print transaction count
-        System.out.println("Loading transactions for student: " + studentID);
-        System.out.println("Found " + transactions.size() + " transactions");
-        
         if (transactions.isEmpty()) {
-            System.out.println("No transactions found for student " + studentID);
             return new Object[0][4];
         }
         
         // Convert to 2D array
         Object[][] result = new Object[transactions.size()][4];
         for (int i = 0; i < transactions.size(); i++) {
-            result[i] = transactions.get(i).toTableRowWithoutStatus();
-            System.out.println("Transaction " + i + ": " + java.util.Arrays.toString(result[i]));
-        }
-        
-        return result;
-    }
-
-    private Object[][] loadPaymentTransactionsWithPaidAmount() {
-        java.util.List<PaymentTransaction> transactions = DataManager.loadPaymentTransactions(studentID);
-        
-        
-        if (transactions.isEmpty()) {
-            return new Object[0][5];
-        }
-        
-        // Get paid amount from UserBalanceDatabase
-        double paidAmount = 21177.0; // Default enrollment payment
-        try {
-            // Try to get the actual paid amount from DueBalance.txt
-            java.io.File file = new java.io.File("DueBalance.txt");
-            if (file.exists()) {
-                try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        if (line.trim().isEmpty() || 
-                            line.startsWith("===") || 
-                            line.startsWith("Format:") || 
-                            line.startsWith("Description:")) {
-                            continue;
-                        }
-                        
-                        String[] parts = line.split(",");
-                        if (parts.length >= 4 && parts[0].trim().equals(studentID)) {
-                            paidAmount = Double.parseDouble(parts[3].trim());
-                            break;
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error reading paid amount: " + e.getMessage());
-        }
-        
-        // Convert to 2D array with paid amount
-        Object[][] result = new Object[transactions.size()][5];
-        for (int i = 0; i < transactions.size(); i++) {
-            Object[] originalRow = transactions.get(i).toTableRowWithoutStatus();
-            result[i][0] = originalRow[0]; // Date
-            result[i][1] = originalRow[1]; // Channel
-            result[i][2] = originalRow[2]; // Reference
-            result[i][3] = originalRow[3]; // Amount
-            result[i][4] = String.format("P %,.2f", paidAmount); // Paid Amount
+            result[i] = transactions.get(i).toTableRow();
         }
         
         return result;
@@ -4737,91 +4781,9 @@ public class ISLUStudentPortal extends JFrame {
      * Adds a new payment transaction to the table
      */
     private void addPaymentToTable(PaymentTransaction transaction) {
-        System.out.println("addPaymentToTable called for: " + transaction.getChannel() + " - " + transaction.getAmount());
-        
         if (paymentTableModel != null) {
-            // Get paid amount from DueBalance.txt (4th element)
-            double paidAmount = 21177.0; // Default enrollment payment
-            try {
-                java.io.File file = new java.io.File("DueBalance.txt");
-                if (file.exists()) {
-                    try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file))) {
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            if (line.trim().isEmpty() || 
-                                line.startsWith("===") || 
-                                line.startsWith("Format:") || 
-                                line.startsWith("Description:")) {
-                                continue;
-                            }
-                            
-                            String[] parts = line.split(",");
-                            if (parts.length >= 4 && parts[0].trim().equals(studentID)) {
-                                paidAmount = Double.parseDouble(parts[3].trim());
-                                break;
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println("Error reading paid amount: " + e.getMessage());
-            }
-            
-            // Create row with 4 columns (Date, Channel, Reference, Amount)
-            Object[] originalRow = transaction.toTableRowWithoutStatus();
-            Object[] newRow = new Object[4];
-            newRow[0] = originalRow[0]; // Date
-            newRow[1] = originalRow[1]; // Channel
-            newRow[2] = originalRow[2]; // Reference
-            newRow[3] = originalRow[3]; // Amount
-            
             // Add new row to table
-            paymentTableModel.addRow(newRow);
-            System.out.println("Transaction added to table. Total rows: " + paymentTableModel.getRowCount());
-            
-            // Update table height to accommodate new data
-            updateTableHeight();
-        } else {
-            System.out.println("paymentTableModel is null!");
-        }
-    }
-    
-    /**
-     * Updates the table height to accommodate all data without scrolling
-     */
-    private void updateTableHeight() {
-        // Find and update the payment transactions table scroll pane
-        Component[] components = contentPanel.getComponents();
-        for (Component comp : components) {
-            if (comp instanceof JPanel) {
-                updateScrollPaneHeight((JPanel) comp);
-            }
-        }
-    }
-    
-    /**
-     * Recursively finds and updates scroll pane heights in a panel
-     */
-    private void updateScrollPaneHeight(JPanel panel) {
-        for (Component comp : panel.getComponents()) {
-            if (comp instanceof JScrollPane) {
-                JScrollPane scrollPane = (JScrollPane) comp;
-                JViewport viewport = scrollPane.getViewport();
-                if (viewport.getView() instanceof JTable) {
-                    JTable table = (JTable) viewport.getView();
-                    int rowHeight = table.getRowHeight();
-                    int rowCount = table.getRowCount();
-                    int headerHeight = table.getTableHeader().getPreferredSize().height;
-                    // Calculate exact height needed for all rows without scrollbars
-                    int newHeight = headerHeight + (rowCount * rowHeight);
-                    scrollPane.setPreferredSize(new Dimension(scrollPane.getPreferredSize().width, newHeight));
-                    // Ensure no scrollbars are shown
-                    scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-                    scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-                }
-            } else if (comp instanceof JPanel) {
-                updateScrollPaneHeight((JPanel) comp);
-            }
+            paymentTableModel.addRow(transaction.toTableRow());
         }
     }
 
@@ -4832,51 +4794,75 @@ public class ISLUStudentPortal extends JFrame {
         // Reload account statement
         accountStatement = AccountStatementManager.getStatement(studentID);
         
-        // Update the balance label from DueBalance.txt (3rd element)
+        // Update the balance label
         if (amountDueValueLabel != null) {
-            double remainingBalance = UserBalanceDatabase.getRemainingBalance(studentID);
-            amountDueValueLabel.setText("P " + String.format("%,.2f", remainingBalance));
-            amountDueValueLabel.setForeground(remainingBalance > 0 ? 
+            amountDueValueLabel.setText("P " + String.format("%,.2f", accountStatement.getBalance()));
+            amountDueValueLabel.setForeground(accountStatement.getBalance() > 0 ? 
                 new Color(200, 0, 0) : new Color(0, 150, 0));
         }
-        
-        // Update the prelim amount due label from DueBalance.txt
-        if (prelimAmountValueLabel != null) {
-            double prelimAmountDue = UserBalanceDatabase.getAmountDue(studentID);
-            prelimAmountValueLabel.setText("P " + String.format("%,.2f", prelimAmountDue));
-            prelimAmountValueLabel.setForeground(prelimAmountDue > 0 ? 
-                new Color(200, 0, 0) : new Color(0, 150, 0));
-        }
-        
-        // Update the prelim status label from DueBalance.txt
-        if (prelimStatusLabel != null) {
-            double prelimAmountDue = UserBalanceDatabase.getAmountDue(studentID);
-            String prelimStatusText;
-            Color prelimStatusColor;
-            if (prelimAmountDue <= 0) {
-                prelimStatusText = "PRELIM STATUS: PAID. Permitted to take the exams.";
-                prelimStatusColor = new Color(0, 150, 0); // Green color for paid
-            } else {
-                prelimStatusText = "PRELIM STATUS: UNPAID. Payment required to take exams.";
-                prelimStatusColor = new Color(200, 0, 0); // Red color for unpaid
-            }
-            prelimStatusLabel.setText(prelimStatusText);
-            prelimStatusLabel.setForeground(prelimStatusColor);
-        }
-        
         
         // Update the overpayment label if it exists
         if (overpaymentValueLabel != null && accountStatement.getOverpayment() > 0) {
             overpaymentValueLabel.setText("P " + String.format("%,.2f", accountStatement.getOverpayment()));
         }
         
+        // Update exam status labels
+        accountStatement.updatePaymentStatuses();
+        
+        if (prelimStatusLabel != null) {
+            String prelimStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.PRELIM);
+            Color prelimStatusColor = accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.PRELIM) <= 0 ? 
+                new Color(0, 150, 0) : new Color(200, 0, 0);
+            
+            // Check for processing payments
+            boolean hasProcessing = accountStatement.getPaymentHistory().stream()
+                .anyMatch(p -> p.getStatus() != null && p.getStatus().isInProgress());
+            if (hasProcessing) {
+                prelimStatusColor = new Color(255, 140, 0); // Orange for processing
+            }
+            
+            prelimStatusLabel.setText(prelimStatusText);
+            prelimStatusLabel.setForeground(prelimStatusColor);
+        }
+        
+        if (midtermStatusLabel != null) {
+            String midtermStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.MIDTERM);
+            Color midtermStatusColor = accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.MIDTERM) <= 0 ? 
+                new Color(0, 150, 0) : new Color(200, 0, 0);
+            
+            // Check for processing payments
+            boolean hasProcessing = accountStatement.getPaymentHistory().stream()
+                .anyMatch(p -> p.getStatus() != null && p.getStatus().isInProgress());
+            if (hasProcessing) {
+                midtermStatusColor = new Color(255, 140, 0); // Orange for processing
+            }
+            
+            midtermStatusLabel.setText(midtermStatusText);
+            midtermStatusLabel.setForeground(midtermStatusColor);
+        }
+        
+        if (finalsStatusLabel != null) {
+            String finalsStatusText = accountStatement.getExamEligibilityMessage(AccountStatement.ExamPeriod.FINALS);
+            Color finalsStatusColor = accountStatement.getExamPeriodDue(AccountStatement.ExamPeriod.FINALS) <= 0 ? 
+                new Color(0, 150, 0) : new Color(200, 0, 0);
+            
+            // Check for processing payments
+            boolean hasProcessing = accountStatement.getPaymentHistory().stream()
+                .anyMatch(p -> p.getStatus() != null && p.getStatus().isInProgress());
+            if (hasProcessing) {
+                finalsStatusColor = new Color(255, 140, 0); // Orange for processing
+            }
+            
+            finalsStatusLabel.setText(finalsStatusText);
+            finalsStatusLabel.setForeground(finalsStatusColor);
+        }
         
         // Update fee breakdown table if needed
         if (feeBreakdownTableModel != null) {
             updateFeeBreakdownTable();
         }
         
-        // Update payment history table - reload from account statement
+        // Update payment history table
         if (paymentTableModel != null) {
             updatePaymentHistoryTable();
         }
@@ -4921,50 +4907,10 @@ public class ISLUStudentPortal extends JFrame {
             paymentTableModel.removeRow(0);
         }
         
-        // Load payment transactions from database using DataManager
-        java.util.List<PaymentTransaction> transactions = DataManager.loadPaymentTransactions(studentID);
-        
-        // Get paid amount from DueBalance.txt (4th element)
-        double paidAmount = 21177.0; // Default enrollment payment
-        try {
-            java.io.File file = new java.io.File("DueBalance.txt");
-            if (file.exists()) {
-                try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(file))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        if (line.trim().isEmpty() || 
-                            line.startsWith("===") || 
-                            line.startsWith("Format:") || 
-                            line.startsWith("Description:")) {
-                            continue;
-                        }
-                        
-                        String[] parts = line.split(",");
-                        if (parts.length >= 4 && parts[0].trim().equals(studentID)) {
-                            paidAmount = Double.parseDouble(parts[3].trim());
-                            break;
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error reading paid amount: " + e.getMessage());
+        // Add payment history
+        for (PaymentTransaction payment : accountStatement.getPaymentHistory()) {
+            paymentTableModel.addRow(payment.toTableRow());
         }
-        
-        for (PaymentTransaction payment : transactions) {
-            // Create row with 4 columns (Date, Channel, Reference, Amount)
-            Object[] originalRow = payment.toTableRowWithoutStatus();
-            Object[] newRow = new Object[4];
-            newRow[0] = originalRow[0]; // Date
-            newRow[1] = originalRow[1]; // Channel
-            newRow[2] = originalRow[2]; // Reference
-            newRow[3] = originalRow[3]; // Amount
-            
-            paymentTableModel.addRow(newRow);
-        }
-        
-        // Update table height after adding data
-        updateTableHeight();
     }
 
     // Custom Document classes for input formatting
@@ -5276,20 +5222,43 @@ public class ISLUStudentPortal extends JFrame {
             itemPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
             itemPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            JLabel itemLabel = new JLabel("○ " + item.split("\\|")[0] + " ");
+            // Parse item data (format: "Display Name|PDF Filename")
+            String[] itemData = item.split("\\|");
+            String displayName = itemData[0];
+            String pdfFileName = itemData.length > 1 ? itemData[1] : "";
+
+            JLabel itemLabel = new JLabel("○ " + displayName + " ");
             itemLabel.setFont(new Font("Arial", Font.PLAIN, 12));
             itemLabel.setForeground(Color.BLACK);
             itemPanel.add(itemLabel);
 
+            // Always show download link in red initially
             JLabel downloadLink = new JLabel("[download]");
             downloadLink.setFont(new Font("Arial", Font.PLAIN, 12));
             downloadLink.setForeground(Color.RED);
             downloadLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            
+            final String finalPdfFileName = pdfFileName;
+            final String finalDisplayName = displayName;
             downloadLink.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    JOptionPane.showMessageDialog(null, "Download functionality would be implemented here for: " + item.split("\\|")[0],
-                                                "Download", JOptionPane.INFORMATION_MESSAGE);
+                    // Check if PDF exists
+                    if (finalPdfFileName == null || finalPdfFileName.isEmpty()) {
+                        // No PDF file specified - show 404 page
+                        show404Page(finalDisplayName);
+                        return;
+                    }
+                    
+                    File pdfFile = new File(finalPdfFileName);
+                    if (!pdfFile.exists()) {
+                        // PDF file doesn't exist - show 404 page
+                        show404Page(finalDisplayName);
+                        return;
+                    }
+                    
+                    // PDF exists - download it
+                    downloadPDF(pdfFile, finalDisplayName);
                 }
             });
             itemPanel.add(downloadLink);
@@ -5299,112 +5268,216 @@ public class ISLUStudentPortal extends JFrame {
         parent.add(Box.createVerticalStrut(10));
     }
 
+    /**
+     * Shows 404 error page when PDF is not found
+     */
+    private void show404Page(String displayName) {
+        // Create custom 404 dialog
+        JDialog dialog404 = new JDialog(this, "404 - Not Found", true);
+        dialog404.setSize(600, 400);
+        dialog404.setLocationRelativeTo(this);
+        dialog404.setResizable(false);
+        
+        // Main panel with light gray background
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBackground(new Color(240, 240, 240));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
+        
+        // Large 404 text
+        JLabel label404 = new JLabel("404");
+        label404.setFont(new Font("Arial", Font.BOLD, 72));
+        label404.setForeground(new Color(52, 73, 94));
+        label404.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainPanel.add(label404);
+        
+        mainPanel.add(Box.createVerticalStrut(30));
+        
+        // Error message
+        JLabel messageLabel = new JLabel("<html><center>The page you are looking for was moved, removed, renamed,<br>or might never existed.</center></html>");
+        messageLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        messageLabel.setForeground(Color.DARK_GRAY);
+        messageLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainPanel.add(messageLabel);
+        
+        mainPanel.add(Box.createVerticalStrut(20));
+        
+        // File info
+        JLabel fileLabel = new JLabel("<html><center>Requested file: <b>" + displayName + "</b></center></html>");
+        fileLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        fileLabel.setForeground(Color.GRAY);
+        fileLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainPanel.add(fileLabel);
+        
+        mainPanel.add(Box.createVerticalStrut(30));
+        
+        // Click here to go back home link
+        JLabel backLink = new JLabel("<html><center><u>click here to go back home</u></center></html>");
+        backLink.setFont(new Font("Arial", Font.PLAIN, 12));
+        backLink.setForeground(Color.BLUE);
+        backLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        backLink.setAlignmentX(Component.CENTER_ALIGNMENT);
+        backLink.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                dialog404.dispose();
+            }
+        });
+        mainPanel.add(backLink);
+        
+        dialog404.add(mainPanel);
+        dialog404.setVisible(true);
+    }
+    
+    /**
+     * Downloads PDF file to user's Downloads folder
+     */
+    private void downloadPDF(File sourceFile, String displayName) {
+        try {
+            // Get user's Downloads folder
+            String userHome = System.getProperty("user.home");
+            File downloadsFolder = new File(userHome, "Downloads");
+            
+            // Create Downloads folder if it doesn't exist
+            if (!downloadsFolder.exists()) {
+                downloadsFolder.mkdirs();
+            }
+            
+            // Create destination file
+            File destFile = new File(downloadsFolder, sourceFile.getName());
+            
+            // Copy file to Downloads folder
+            java.nio.file.Files.copy(
+                sourceFile.toPath(),
+                destFile.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            );
+            
+            // Show success message
+            JOptionPane.showMessageDialog(null, 
+                "Successfully downloaded: " + displayName + "\nSaved to: " + destFile.getAbsolutePath(),
+                "Download Complete", 
+                JOptionPane.INFORMATION_MESSAGE);
+                
+            // Try to open the Downloads folder (optional)
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(downloadsFolder);
+            }
+            
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(null, 
+                "Error downloading file: " + ex.getMessage(),
+                "Download Error", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     // Helper methods to create downloadable items for each category
     private String[] createGeneralDownloadables() {
         return new String[]{
-            "Student Handbook",
-            "Safety Orientation Manual",
-            "Ordinance 021-2018 - Harassment",
-            "GGuide for Education",
-            "The Mission and Identity Cluster",
-            "Official List of Student Organizations",
-            "UNIVERSITY LIBRARIES",
-            "OSA Student Services Orientation",
-            "KASAMA SSC Orientation",
-            "Feeling at Home in SLU",
-            "Health and Safety Protocols re COVID 19 Prevention and Control",
-            "Policies and Guidelines on Student Behavior during Online Correspondence Based Learning",
-            "SLU Policy on COVID-19 Prevention and Control Measures in the Workplace",
-            "SLU Privacy Policy",
-            "SLU Quality Policy",
-            "SLU UNIVERSITY PRAYER",
-            "Special Guidelines for Recognition or Renewal of Recognition 2021 to 2022",
-            "Baguio City Anti Discrimination Ordinance",
-            "IRR of RA 11313 Safe Spaces Act",
-            "Safe Spaces Act 20190417 RA 11313 R&D",
-            "Emails of SLU Student Groups"
+            "Student Handbook|Student Handbook.pdf",
+            "Safety Orientation Manual|Safety Orientation Manual.pdf",
+            "Ordinance 021-2018 - Harassment|",  // No PDF file
+            "GGuide for Education|GSuite for Education.pdf",
+            "The Mission and Identity Cluster|The Mission and Identity Cluster.pdf",
+            "Official List of Student Organizations|Official List of Student Organizations.pdf",
+            "UNIVERSITY LIBRARIES|UNIVERSITY LIBRARIES.pdf",
+            "OSA Student Services Orientation|OSA Student Services Orientation.pdf",
+            "KASAMA SSC Orientation|KASAMA SSC Orientation.pdf",
+            "Feeling at Home in SLU|",  // No PDF file
+            "Health and Safety Protocols re COVID 19 Prevention and Control|Health and Safety Protocols re COVID 19 Prevention and Control.pdf",
+            "Policies and Guidelines on Student Behavior during Online Correspondence Based Learning|Policies and Guidelines on Student Behavior during Online Correspondence Based Learning.pdf",
+            "SLU Policy on COVID-19 Prevention and Control Measures in the Workplace|SLU Policy on COVID-19 Prevention and Control Measures in the Workplace.pdf",
+            "SLU Privacy Policy|SLU Privacy Policy.pdf",
+            "SLU Quality Policy|SLU Quality Policy.pdf",
+            "SLU UNIVERSITY PRAYER|SLU UNIVERSITY PRAYER.pdf",
+            "Special Guidelines for Recognition or Renewal of Recognition 2021 to 2022|Special Guidelines for Recognition or Renewal of Recognition 2021 to 2022.pdf",
+            "Baguio City Anti Discrimination Ordinance|Baguio City Anti Discrimination Ordinance.pdf",
+            "IRR of RA 11313 Safe Spaces Act|IRR of RA 11313 Safe Spaces Act.pdf",
+            "Safe Spaces Act 20190417 RA 11313 R&D|Safe Spaces Act 20190417 RA 11313 RRD.pdf",
+            "Emails of SLU Student Groups|Emails of SLU Student Groups.pdf"
         };
     }
 
     private String[] createCounselingDownloadables() {
         return new String[]{
-            "Handouts for Parents on their Children's Independent Living in College",
-            "Freshie Career Booklet",
-            "Referral Guide Poster",
-            "SULN Brochure",
-            "SULN Form",
-            "The Louisian Journal 2023",
-            "CCV Referral Form"
+            "Handouts for Parents on their Children's Independent Living in College|",  // No PDF file
+            "Freshie Career Booklet|",  // No PDF file
+            "Referral Guide Poster|",  // No PDF file
+            "SULN Brochure|",  // No PDF file
+            "SULN Form|",  // No PDF file
+            "The Louisian Journal 2023|",  // No PDF file
+            "CCV Referral Form|"  // No PDF file
         };
     }
 
     private String[] createOtherServicesDownloadables() {
         return new String[]{
-            "MEDICAL CLINIC CONTINUITY PLAN",
-            "Online Schedule of Medical Clinic",
-            "SLU Residence Halls"
+            "MEDICAL CLINIC CONTINUITY PLAN|MEDICAL CLINIC CONTINUITY PLAN.pdf",
+            "Online Schedule of Medical Clinic|Online Schedule of Medical Clinic.pdf",
+            "SLU Residence Halls|SLU Residence Halls.pdf"
         };
     }
 
     private String[] createSAMCISDownloadables() {
         return new String[]{
-            "SAMCIS Online Helpdesk",
-            "SAMCIS Program Offerings Overview"
+            "SAMCIS Online Helpdesk|SAMCIS Online Helpdesk.pdf",
+            "SAMCIS Program Offerings Overview|SAMCIS Program Offerings Overview.pdf"
         };
     }
 
     private String[] createSASDownloadables() {
         return new String[]{
-            "SAS HELPDESK"
+            "SAS HELPDESK|SAS HELPDESK.pdf"
         };
     }
 
     private String[] createSEADownloadables() {
         return new String[]{
-            "SEA Online Helpdesk",
-            "SEA Program Offerings Overview"
+            "SEA Online Helpdesk|SEA Online Helpdesk.pdf",
+            "SEA Program Offerings Overview|SEA Program Offerings Overview.pdf"
         };
     }
 
     private String[] createSONAHBSDownloadables() {
         return new String[]{
-            "SONAHBS Online Helpdesk",
-            "SNS Program Offerings Overview",
-            "SON Program Offerings Overview"
+            "SONAHBS Online Helpdesk|",  // No PDF file
+            "SNS Program Offerings Overview|SNS Program Offerings Overview.pdf",
+            "SON Program Offering Overview|SON Program Offering Overview.pdf"
         };
     }
 
     private String[] createSOLDownloadables() {
         return new String[]{
-            "SOL Online Helpdesk"
+            "SOL Online Helpdesk|SOL Online Helpdesk.pdf"
         };
     }
 
     private String[] createSOMDownloadables() {
         return new String[]{
-            "SOM Online Helpdesk"
+            "SOM Online Helpdesk|SOM Online Helpdesk.pdf"
         };
     }
 
     private String[] createSTELADownloadables() {
         return new String[]{
-            "STELA Online Helpdesk",
-            "STELA Program Offerings Overview"
+            "STELA Online Helpdesk|STELA Online Helpdesk.pdf",
+            "STELA Program Offerings Overview|STELA Program Offerings Overview.pdf"
         };
     }
 
     private String[] createStudentServicesDownloadables() {
         return new String[]{
-            "Guidance Center",
-            "Office of Student Affairs",
-            "University Registrar's Office",
-            "University Libraries",
-            "Office of External Relations, Media & Communications and Alumni Affairs",
-            "Office of the Vice President for Mission and Identity",
-            "Campus Planning, Maintenance, and Security Department",
-            "Dental Clinic",
-            "Medical Clinic",
-            "Technology Management and Development Department"
+            "Guidance Center|",  // No PDF file
+            "Office of Student Affairs|",  // No PDF file
+            "University Registrar's Office|",  // No PDF file
+            "University Libraries|",  // No PDF file
+            "Office of External Relations, Media & Communications and Alumni Affairs|",  // No PDF file
+            "Office of the Vice President for Mission and Identity|",  // No PDF file
+            "Campus Planning, Maintenance, and Security Department|",  // No PDF file
+            "Dental Clinic|",  // No PDF file
+            "Medical Clinic|",  // No PDF file
+            "Technology Management and Development Department|"  // No PDF file
         };
     }
 
@@ -5872,9 +5945,10 @@ public class ISLUStudentPortal extends JFrame {
     // Store current medical record and content panel reference
     private MedicalRecord currentMedicalRecord;
     private JPanel medicalContentPanel;
+    private JPanel currentMedicalContentView; // Store current view to preserve state
     
     private JPanel createMedicalRecordPanel(MySinglyLinkedList<String> subItems) {
-        // Load medical record from database
+        // Always reload medical record from database when creating panel
         currentMedicalRecord = DataManager.getMedicalRecord(studentID);
         
         JPanel mainPanel = new JPanel(new BorderLayout());
@@ -5919,6 +5993,10 @@ public class ISLUStudentPortal extends JFrame {
         // Store reference to content panel for updates
         medicalContentPanel = new JPanel(new BorderLayout());
         medicalContentPanel.setBackground(Color.WHITE);
+        medicalContentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Reset current view
+        currentMedicalContentView = null;
         
         // Show default content (Personal Information)
         showMedicalPersonalInfo();
@@ -5928,16 +6006,20 @@ public class ISLUStudentPortal extends JFrame {
         // Update button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        JButton updateButton = new JButton("Update");
+        JButton updateButton = new JButton("Update Medical Records");
         updateButton.setBackground(new Color(13, 37, 73));
         updateButton.setForeground(Color.WHITE);
-        updateButton.setFont(new Font("Arial", Font.BOLD, 12));
-        updateButton.setPreferredSize(new Dimension(100, 30));
+        updateButton.setFont(new Font("Arial", Font.BOLD, 13));
+        updateButton.setPreferredSize(new Dimension(180, 35)); // Larger button
         updateButton.setFocusPainted(false);
+        updateButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         updateButton.addActionListener(e -> {
-            // Save medical record to database
+            // Force save medical record to database
             if (DataManager.saveMedicalRecord(currentMedicalRecord)) {
+                // Reload the data to ensure consistency
+                currentMedicalRecord = DataManager.getMedicalRecord(studentID);
                 JOptionPane.showMessageDialog(this, 
                     "Medical records updated successfully!", 
                     "Success", 
@@ -5969,8 +6051,9 @@ public class ISLUStudentPortal extends JFrame {
     private JPanel createMedicalSidebar() {
         JPanel sidebar = new JPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setBackground(new Color(240, 240, 240));
-        sidebar.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        sidebar.setBackground(new Color(245, 245, 245));
+        sidebar.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        sidebar.setPreferredSize(new Dimension(250, 0)); // Fixed width for consistency
         
         // Medical categories
         String[] categories = {
@@ -5992,12 +6075,16 @@ public class ISLUStudentPortal extends JFrame {
                 firstButton = categoryBtn;
             }
             sidebar.add(categoryBtn);
-            sidebar.add(Box.createRigidArea(new Dimension(0, 5)));
+            sidebar.add(Box.createRigidArea(new Dimension(0, 8))); // Increased spacing for better visual separation
         }
         
         // Select the first button by default
         if (firstButton != null) {
             firstButton.setBackground(new Color(220, 240, 255));
+            firstButton.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(70, 130, 180), 2),
+                BorderFactory.createEmptyBorder(8, 15, 8, 15)
+            ));
             currentSelectedMedicalButton = firstButton;
         }
         
@@ -6010,24 +6097,30 @@ public class ISLUStudentPortal extends JFrame {
      */
     private JButton createMedicalCategoryButton(String text) {
         JButton button = new JButton(text);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40)); // Increased height for better touch target
+        button.setPreferredSize(new Dimension(220, 40)); // Fixed size for consistency
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setBackground(Color.WHITE);
         button.setForeground(new Color(13, 37, 73));
-        button.setFont(new Font("Arial", Font.PLAIN, 12));
+        button.setFont(new Font("Arial", Font.PLAIN, 13)); // Slightly larger font
         button.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+            BorderFactory.createEmptyBorder(8, 15, 8, 15) // More padding
         ));
         button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR)); // Add hand cursor for better UX
         
         // Add hover effect
         button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 if (button != currentSelectedMedicalButton) {
-                    button.setBackground(new Color(230, 230, 230));
+                    button.setBackground(new Color(245, 245, 245));
+                    button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(70, 130, 180)), // Blue border on hover
+                        BorderFactory.createEmptyBorder(8, 15, 8, 15)
+                    ));
                 }
             }
             
@@ -6035,6 +6128,10 @@ public class ISLUStudentPortal extends JFrame {
             public void mouseExited(MouseEvent e) {
                 if (button != currentSelectedMedicalButton) {
                     button.setBackground(Color.WHITE);
+                    button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                        BorderFactory.createEmptyBorder(8, 15, 8, 15)
+                    ));
                 }
             }
             
@@ -6043,9 +6140,20 @@ public class ISLUStudentPortal extends JFrame {
                 // Update button selection
                 if (currentSelectedMedicalButton != null) {
                     currentSelectedMedicalButton.setBackground(Color.WHITE);
+                    currentSelectedMedicalButton.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                        BorderFactory.createEmptyBorder(8, 15, 8, 15)
+                    ));
                 }
-                button.setBackground(new Color(220, 240, 255));
+                button.setBackground(new Color(220, 240, 255)); // Light blue for selected
+                button.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(70, 130, 180), 2), // Thicker blue border for selected
+                    BorderFactory.createEmptyBorder(8, 15, 8, 15)
+                ));
                 currentSelectedMedicalButton = button;
+                
+                // Reload medical record before switching panels to ensure data is current
+                currentMedicalRecord = DataManager.getMedicalRecord(studentID);
                 
                 // Update content panel based on selected category
                 if (text.contains("Personal Info")) {
@@ -6088,6 +6196,11 @@ public class ISLUStudentPortal extends JFrame {
      * Shows medical category panel in the main content area
      */
     private void showMedicalCategoryPanel(String category, String currentContent, java.util.function.Consumer<String> updateFunction) {
+        // Save any pending changes before switching
+        if (currentMedicalContentView != null) {
+            DataManager.saveMedicalRecord(currentMedicalRecord);
+        }
+        
         medicalContentPanel.removeAll();
         
         JPanel panel = new JPanel(new BorderLayout());
@@ -6095,11 +6208,16 @@ public class ISLUStudentPortal extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
         // Title
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        titlePanel.setBackground(new Color(245, 245, 245));
+        titlePanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        
         JLabel titleLabel = new JLabel(category.toUpperCase());
         titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
         titleLabel.setForeground(new Color(13, 37, 73));
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
-        panel.add(titleLabel, BorderLayout.NORTH);
+        titlePanel.add(titleLabel);
+        
+        panel.add(titlePanel, BorderLayout.NORTH);
         
         // Create specific panel based on category
         JPanel contentPanel = null;
@@ -6125,6 +6243,7 @@ public class ISLUStudentPortal extends JFrame {
         
         panel.add(contentPanel, BorderLayout.CENTER);
         
+        currentMedicalContentView = panel; // Store current view
         medicalContentPanel.add(panel, BorderLayout.CENTER);
         medicalContentPanel.revalidate();
         medicalContentPanel.repaint();
@@ -7014,6 +7133,11 @@ public class ISLUStudentPortal extends JFrame {
      * Shows personal information and emergency contact in the main content area
      */
     private void showMedicalPersonalInfo() {
+        // Save any pending changes before switching
+        if (currentMedicalContentView != null) {
+            DataManager.saveMedicalRecord(currentMedicalRecord);
+        }
+        
         medicalContentPanel.removeAll();
         
         // Create scrollable content panel
@@ -7023,11 +7147,17 @@ public class ISLUStudentPortal extends JFrame {
         scrollContent.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
         // Personal Information Section
+        JPanel personalInfoTitlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        personalInfoTitlePanel.setBackground(new Color(245, 245, 245));
+        personalInfoTitlePanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        personalInfoTitlePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        
         JLabel personalInfoTitle = new JLabel("PERSONAL INFORMATION");
-        personalInfoTitle.setFont(new Font("Arial", Font.BOLD, 14));
+        personalInfoTitle.setFont(new Font("Arial", Font.BOLD, 15));
         personalInfoTitle.setForeground(new Color(13, 37, 73));
-        personalInfoTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-        scrollContent.add(personalInfoTitle);
+        personalInfoTitlePanel.add(personalInfoTitle);
+        scrollContent.add(personalInfoTitlePanel);
+        scrollContent.add(Box.createRigidArea(new Dimension(0, 10)));
         
         JPanel personalInfoPanel = createPersonalInfoPanel();
         scrollContent.add(personalInfoPanel);
@@ -7040,11 +7170,17 @@ public class ISLUStudentPortal extends JFrame {
         scrollContent.add(Box.createRigidArea(new Dimension(0, 20)));
         
         // Emergency Contact Section
+        JPanel emergencyTitlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        emergencyTitlePanel.setBackground(new Color(245, 245, 245));
+        emergencyTitlePanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        emergencyTitlePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        
         JLabel emergencyTitle = new JLabel("PERSON TO CONTACT IN CASE OF EMERGENCY");
-        emergencyTitle.setFont(new Font("Arial", Font.BOLD, 14));
+        emergencyTitle.setFont(new Font("Arial", Font.BOLD, 15));
         emergencyTitle.setForeground(new Color(13, 37, 73));
-        emergencyTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-        scrollContent.add(emergencyTitle);
+        emergencyTitlePanel.add(emergencyTitle);
+        scrollContent.add(emergencyTitlePanel);
+        scrollContent.add(Box.createRigidArea(new Dimension(0, 10)));
         
         JPanel emergencyContactPanel = createEmergencyContactPanel();
         scrollContent.add(emergencyContactPanel);
@@ -7054,6 +7190,7 @@ public class ISLUStudentPortal extends JFrame {
         scrollPane.setBorder(null);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         
+        currentMedicalContentView = scrollContent; // Store current view
         medicalContentPanel.add(scrollPane, BorderLayout.CENTER);
         medicalContentPanel.revalidate();
         medicalContentPanel.repaint();
@@ -7066,8 +7203,12 @@ public class ISLUStudentPortal extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(230, 230, 230)),
+            BorderFactory.createEmptyBorder(15, 25, 15, 25)
+        ));
         panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(700, Integer.MAX_VALUE));
         
         // Get student data from database
         StudentInfo studentInfo = DataManager.getStudentInfo(studentID);
@@ -7078,31 +7219,31 @@ public class ISLUStudentPortal extends JFrame {
         String fullName = studentInfo != null ? 
             studentInfo.getFirstName() + " " + studentInfo.getLastName() : studentName;
         panel.add(createMedicalFieldPanel("Name:", fullName.toUpperCase(), false));
-        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
         
         // Date of Birth field
         String dob = studentInfo != null ? studentInfo.getDateOfBirth() : "APR 01, 2006";
         panel.add(createMedicalFieldPanel("Date of Birth:", dob, false));
-        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
         
         // Gender field
         String gender = profileData != null ? profileData.getGender() : "Female";
         panel.add(createMedicalFieldPanel("Gender:", gender, false));
-        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
         
         // Address field
         String address = profileData != null ? profileData.getBaguioAddress() : 
             "Camp 6, Camp 4, Tuba Benguet";
         panel.add(createMedicalFieldPanel("Address:", address, false));
-        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
         
         // Contact Number field
         String contact = profileData != null ? profileData.getCellphone() : "09665295444";
         panel.add(createMedicalFieldPanel("Contact Number:", contact, false));
-        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
         
         // Course/Year field
-        panel.add(createMedicalFieldPanel("Course/Year:", "BSIT 1", false));
+        panel.add(createMedicalFieldPanel("Course/Year:", "BSIT 2", false));
         
         return panel;
     }
@@ -7113,14 +7254,17 @@ public class ISLUStudentPortal extends JFrame {
     private JPanel createMedicalFieldPanel(String labelText, String value, boolean editable) {
         JPanel fieldPanel = new JPanel(new BorderLayout(10, 0));
         fieldPanel.setBackground(Color.WHITE);
-        fieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+        fieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40)); // Increased height
+        fieldPanel.setPreferredSize(new Dimension(600, 40)); // Fixed preferred size
         fieldPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         
         JLabel label = createMedicalLabel(labelText);
-        label.setPreferredSize(new Dimension(150, 25));
+        label.setPreferredSize(new Dimension(180, 30)); // Wider label
+        label.setFont(new Font("Arial", Font.PLAIN, 13));
         fieldPanel.add(label, BorderLayout.WEST);
         
         JTextField field = createMedicalTextField(value, editable);
+        field.setFont(new Font("Arial", Font.PLAIN, 13));
         fieldPanel.add(field, BorderLayout.CENTER);
         
         return fieldPanel;
@@ -7133,8 +7277,12 @@ public class ISLUStudentPortal extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(230, 230, 230)),
+            BorderFactory.createEmptyBorder(15, 25, 15, 25)
+        ));
         panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(700, Integer.MAX_VALUE));
         
         // Get data from medical record or profile data as fallback
         String profileString = DataManager.getStudentProfile(studentID);
@@ -7158,7 +7306,7 @@ public class ISLUStudentPortal extends JFrame {
             }
         });
         panel.add((JPanel)nameField.getClientProperty("parentPanel"));
-        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(Box.createRigidArea(new Dimension(0, 12))); // Consistent spacing
         
         // Address field - use from medical record first, then fallback to profile data
         String emergencyAddress = currentMedicalRecord.getEmergencyContactAddress();
@@ -7177,7 +7325,7 @@ public class ISLUStudentPortal extends JFrame {
             }
         });
         panel.add((JPanel)addressField.getClientProperty("parentPanel"));
-        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(Box.createRigidArea(new Dimension(0, 12))); // Consistent spacing
         
         // Contact Number field
         String emergencyNumber = currentMedicalRecord.getEmergencyContactNumber();
@@ -7205,14 +7353,17 @@ public class ISLUStudentPortal extends JFrame {
     private JTextField createEditableMedicalField(String labelText, String value) {
         JPanel fieldPanel = new JPanel(new BorderLayout(10, 0));
         fieldPanel.setBackground(Color.WHITE);
-        fieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+        fieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40)); // Consistent height
+        fieldPanel.setPreferredSize(new Dimension(600, 40));
         fieldPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         
         JLabel label = createMedicalLabel(labelText);
-        label.setPreferredSize(new Dimension(150, 25));
+        label.setPreferredSize(new Dimension(180, 30)); // Consistent width
+        label.setFont(new Font("Arial", Font.PLAIN, 13));
         fieldPanel.add(label, BorderLayout.WEST);
         
         JTextField field = createMedicalTextField(value, true);
+        field.setFont(new Font("Arial", Font.PLAIN, 13));
         fieldPanel.add(field, BorderLayout.CENTER);
         
         // Store the parent panel in the text field's client property for retrieval
@@ -7226,8 +7377,9 @@ public class ISLUStudentPortal extends JFrame {
      */
     private JLabel createMedicalLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Arial", Font.PLAIN, 12));
+        label.setFont(new Font("Arial", Font.PLAIN, 13));
         label.setForeground(new Color(50, 50, 50));
+        label.setVerticalAlignment(SwingConstants.CENTER);
         return label;
     }
     
@@ -7236,14 +7388,16 @@ public class ISLUStudentPortal extends JFrame {
      */
     private JTextField createMedicalTextField(String text, boolean editable) {
         JTextField field = new JTextField(text);
-        field.setFont(new Font("Arial", Font.PLAIN, 12));
+        field.setFont(new Font("Arial", Font.PLAIN, 13));
         field.setEditable(editable);
         field.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+            BorderFactory.createEmptyBorder(8, 10, 8, 10) // More padding
         ));
+        field.setPreferredSize(new Dimension(400, 35)); // Consistent size
         if (!editable) {
-            field.setBackground(new Color(245, 245, 245));
+            field.setBackground(new Color(248, 248, 248));
+            field.setForeground(new Color(80, 80, 80));
         }
         return field;
     }
@@ -7289,40 +7443,4 @@ class ProfileData {
     public String getMotherOcc() { return (motherOcc != null && !motherOcc.trim().isEmpty()) ? motherOcc : "N/A"; }
     public String getGuardianName() { return (guardianName != null && !guardianName.trim().isEmpty()) ? guardianName : "N/A"; }
     public String getGuardianAddress() { return (guardianAddress != null && !guardianAddress.trim().isEmpty()) ? guardianAddress : "N/A"; }
-}
-
-/**
- * Custom document filter for GCash number (11 digits only)
- */
-class GCashNumberDocument extends javax.swing.text.PlainDocument {
-    @Override
-    public void insertString(int offset, String str, javax.swing.text.AttributeSet attr) throws javax.swing.text.BadLocationException {
-        if (str == null) return;
-        
-        // Remove all non-digit characters
-        String digitsOnly = str.replaceAll("[^0-9]", "");
-        
-        // Check if adding these digits would exceed 11 characters
-        if (getLength() + digitsOnly.length() <= 11) {
-            super.insertString(offset, digitsOnly, attr);
-        }
-    }
-}
-
-/**
- * Custom document filter for OTP (exactly 6 digits only)
- */
-class OTPDocument extends javax.swing.text.PlainDocument {
-    @Override
-    public void insertString(int offset, String str, javax.swing.text.AttributeSet attr) throws javax.swing.text.BadLocationException {
-        if (str == null) return;
-        
-        // Remove all non-digit characters
-        String digitsOnly = str.replaceAll("[^0-9]", "");
-        
-        // Check if adding these digits would exceed 6 characters
-        if (getLength() + digitsOnly.length() <= 6) {
-            super.insertString(offset, digitsOnly, attr);
-        }
-    }
 }

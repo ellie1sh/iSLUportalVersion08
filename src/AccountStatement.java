@@ -36,7 +36,7 @@ public class AccountStatement {
         this.totalFees = 0.0;
         this.totalAmount = 0.0;
         this.amountPaid = 0.0;
-        this.balance = 23813.0; // Initialize remaining balance to P 23,813
+        this.balance = 0.0;
         this.overpayment = 0.0;
         this.isPrelimPaid = false;
         this.isMidtermPaid = false;
@@ -138,24 +138,25 @@ public class AccountStatement {
     /**
      * Updates exam payment status based on current balance
      */
-    public void updateExamPaymentStatus() {
-        // Calculate required payments for each exam period
-        double prelimRequirement = 6830.0; // Fixed prelim requirement of P 6,830
+    private void updateExamPaymentStatus() {
+        // Calculate required payments for each exam period (33.33% each)
+        double prelimRequirement = totalAmount * 0.3333;
         double midtermRequirement = totalAmount * 0.6666;
         double finalsRequirement = totalAmount;
+        
+        double totalPaidIncludingOverpayment = amountPaid;
         
         // Check if payments are posted (not just processing)
         boolean hasPostedPayments = paymentHistory.stream()
             .anyMatch(p -> p.getStatus() != null && p.getStatus().isSuccessful());
         
-        // Update payment status based on amount paid
+        // Only mark as paid if payment is posted/completed
         if (hasPostedPayments || amountPaid > 0) {
-            // Prelim is paid if amount paid >= 6830
-            isPrelimPaid = amountPaid >= prelimRequirement;
-            isMidtermPaid = amountPaid >= midtermRequirement;
-            isFinalsPaid = amountPaid >= finalsRequirement;
+            isPrelimPaid = totalPaidIncludingOverpayment >= prelimRequirement;
+            isMidtermPaid = totalPaidIncludingOverpayment >= midtermRequirement;
+            isFinalsPaid = totalPaidIncludingOverpayment >= finalsRequirement;
         } else {
-            // If no payments, mark as unpaid
+            // If all payments are still processing, don't mark as paid yet
             isPrelimPaid = false;
             isMidtermPaid = false;
             isFinalsPaid = false;
@@ -226,13 +227,7 @@ public class AccountStatement {
         }
         
         totalAmount = totalTuition + totalFees;
-        
-        // Preserve the initial balance of 23,813 unless payments have been made
-        if (amountPaid == 0.0) {
-            balance = 23813.0; // Keep initial balance of P 23,813
-        } else {
-            balance = totalAmount - amountPaid;
-        }
+        balance = totalAmount - amountPaid;
         
         if (balance < 0) {
             overpayment = Math.abs(balance);
@@ -246,20 +241,16 @@ public class AccountStatement {
      * Gets the amount due for a specific exam period
      */
     public double getExamPeriodDue(ExamPeriod period) {
+        double prelimRequirement = totalAmount * 0.3333;
+        double midtermRequirement = totalAmount * 0.6666;
+        double finalsRequirement = totalAmount;
+        
         switch (period) {
             case PRELIM:
-                // If prelim is already paid, always return 0.00
-                if (isPrelimPaid) {
-                    return 0.0;
-                }
-                // Calculate amount due: initial 6830 minus amount paid
-                double prelimDue = Math.max(0, 6830.0 - amountPaid);
-                return prelimDue;
+                return Math.max(0, prelimRequirement - amountPaid);
             case MIDTERM:
-                double midtermRequirement = totalAmount * 0.6666;
                 return Math.max(0, midtermRequirement - amountPaid);
             case FINALS:
-                double finalsRequirement = totalAmount;
                 return Math.max(0, finalsRequirement - amountPaid);
             default:
                 return balance;
