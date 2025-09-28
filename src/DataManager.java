@@ -62,37 +62,66 @@ public class DataManager {
      * @return true if credentials are valid, false otherwise
      */
     public static boolean authenticateUser(String studentID, String password) {
+        // First check Database.txt (primary database)
         try {
             File databaseFile = getDatabaseFile();
-            if (!databaseFile.exists()) {
-                return false;
-            }
-
-            try (BufferedReader reader = new BufferedReader(new FileReader(databaseFile))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    // Skip empty lines
-                    if (line.trim().isEmpty()) {
-                        continue;
-                    }
-                    
-                    // Handle lines with profile data (containing | separator)
-                    String[] mainParts = line.split("\\|");
-                    String basicInfo = mainParts[0]; // Everything before the |
-                    
-                    String[] parts = basicInfo.split(",");
-                    if (parts.length >= 6) {
-                        String storedID = parts[0].trim();
-                        String storedPassword = parts[5].trim();
+            if (databaseFile.exists()) {
+                try (BufferedReader reader = new BufferedReader(new FileReader(databaseFile))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        // Skip empty lines and header lines
+                        if (line.trim().isEmpty() || line.startsWith("===") || line.startsWith("Format:")) {
+                            continue;
+                        }
                         
-                        if (studentID.equals(storedID) && password.equals(storedPassword)) {
-                            return true;
+                        // Handle lines with profile data (containing | separator)
+                        String[] mainParts = line.split("\\|");
+                        String basicInfo = mainParts[0]; // Everything before the |
+                        
+                        String[] parts = basicInfo.split(",");
+                        if (parts.length >= 6) {
+                            String storedID = parts[0].trim();
+                            String storedPassword = parts[5].trim();
+                            
+                            if (studentID.equals(storedID) && password.equals(storedPassword)) {
+                                return true;
+                            }
                         }
                     }
                 }
             }
         } catch (IOException e) {
             System.err.println("Error reading database: " + e.getMessage());
+        }
+        
+        // If not found in Database.txt, check UserPasswordID.txt as fallback
+        try {
+            File userPasswordFile = getUserPasswordFile();
+            if (userPasswordFile.exists()) {
+                try (BufferedReader reader = new BufferedReader(new FileReader(userPasswordFile))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (line.trim().isEmpty()) {
+                            continue;
+                        }
+                        
+                        // Parse format: "ID: 2258281 | Password: qweqweqwe"
+                        if (line.startsWith("ID: ")) {
+                            String[] parts = line.split(" \\| ");
+                            if (parts.length >= 2) {
+                                String storedID = parts[0].substring(4).trim(); // Remove "ID: "
+                                String storedPassword = parts[1].substring(10).trim(); // Remove "Password: "
+                                
+                                if (studentID.equals(storedID) && password.equals(storedPassword)) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading user password file: " + e.getMessage());
         }
         
         return false;
