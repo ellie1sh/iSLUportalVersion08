@@ -24,13 +24,7 @@ public class AccountStatementManager {
         if (!statements.containsKey(studentID)) {
             createNewStatement(studentID);
         }
-        
-        AccountStatement statement = statements.get(studentID);
-        
-        // Ensure all accounts have the default enrollment payment transaction
-        ensureDefaultEnrollmentTransaction(statement);
-        
-        return statement;
+        return statements.get(studentID);
     }
     
     /**
@@ -46,45 +40,10 @@ public class AccountStatementManager {
         // Add default fees for the semester
         addDefaultFees(statement);
         
-        // Initialize user in DueBalance.txt database with default values
-        UserBalanceDatabase.initializeUser(studentID);
-        
         statements.put(studentID, statement);
         saveStatements();
         
         return statement;
-    }
-    
-    /**
-     * Ensures all accounts have the default enrollment payment transaction
-     */
-    private static void ensureDefaultEnrollmentTransaction(AccountStatement statement) {
-        // Check if the default enrollment transaction already exists
-        boolean hasEnrollmentTransaction = false;
-        for (PaymentTransaction transaction : statement.getPaymentHistory()) {
-            if (transaction.getChannel().equals("BPI ONLINE") && 
-                transaction.getReference().equals("FIRST SEMESTER 2025-2026 Enrollment") &&
-                transaction.getAmount().equals("P 21,177.00")) {
-                hasEnrollmentTransaction = true;
-                break;
-            }
-        }
-        
-        // If no enrollment transaction exists, add it
-        if (!hasEnrollmentTransaction) {
-            addDefaultEnrollmentTransaction(statement);
-        }
-    }
-    
-    /**
-     * Adds the default enrollment payment transaction
-     */
-    private static void addDefaultEnrollmentTransaction(AccountStatement statement) {
-        // Process the default enrollment payment
-        statement.processPayment(21177.00, "BPI ONLINE", "FIRST SEMESTER 2025-2026 Enrollment");
-        
-        // Log to payment logs file
-        DataManager.logPaymentTransaction("BPI ONLINE", 21177.00, statement.getStudentID());
     }
     
     /**
@@ -279,18 +238,11 @@ public class AccountStatementManager {
                             parts[1].trim(),
                             parts.length > 3 ? parts[3].trim() : "Payment"
                         );
-                        // Ensure exam payment status is updated after loading payment
-                        currentStatement.updateExamPaymentStatus();
                     }
                 }
             }
         } catch (IOException e) {
             System.err.println("Error loading statements: " + e.getMessage());
-        }
-        
-        // Ensure all loaded statements have their exam payment status updated
-        for (AccountStatement statement : statements.values()) {
-            statement.updateExamPaymentStatus();
         }
     }
     

@@ -225,14 +225,7 @@ public class DataManager {
             java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("MM/dd/yyyy hh:mm a");
             String currentDateTime = dateFormat.format(new java.util.Date());
             
-            // Determine reference based on amount
-            String reference;
-            if (amount >= 20000) {
-                reference = "FIRST SEMESTER 2025-2026 Enrollment";
-            } else {
-                reference = "For Prelim First Semester 2025-2026";
-            }
-            
+            String reference = "FIRST SEMESTER 2025-2026 Enrollme.";
             String formattedAmount = String.format("P %,.2f", amount);
             
             String logEntry = currentDateTime + "," + channelName + "," + reference + "," + formattedAmount + "," + studentID;
@@ -256,25 +249,14 @@ public class DataManager {
         
         try {
             File logFile = getPaymentLogsFile();
-            System.out.println("Loading payment transactions from: " + logFile.getAbsolutePath());
-            System.out.println("File exists: " + logFile.exists());
             if (logFile.exists()) {
                 try (BufferedReader reader = new BufferedReader(new FileReader(logFile))) {
                     String line;
-                    int lineCount = 0;
                     while ((line = reader.readLine()) != null) {
-                        lineCount++;
-                        if (line.trim().isEmpty() || line.startsWith("===") || line.startsWith("Format:") || line.startsWith("Description:")) {
-                            continue;
-                        }
                         String[] parts = line.split(",");
-                        System.out.println("Line " + lineCount + ": " + line);
-                        System.out.println("Parts length: " + parts.length);
                         if (parts.length >= 5) {
                             String transactionStudentID = parts[4].trim();
-                            System.out.println("Transaction student ID: " + transactionStudentID + ", Looking for: " + studentID);
                             if (studentID.equals(transactionStudentID)) {
-                                System.out.println("Match found! Adding transaction.");
                                 transactions.add(new PaymentTransaction(
                                     parts[0].trim(), // Date
                                     parts[1].trim(), // Channel
@@ -289,7 +271,7 @@ public class DataManager {
         } catch (IOException e) {
             System.err.println("Error reading payment logs: " + e.getMessage());
         }
-        System.out.println("Total transactions found: " + transactions.size());
+        
         return transactions;
     }
     
